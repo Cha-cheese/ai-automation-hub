@@ -9,7 +9,7 @@ services:
     volumes:
       - .:/app
     command: uvicorn app.api.routes:app --host 0.0.0.0 --port 8000 --reload
-    
+
   n8n:
     image: n8nio/n8n:latest
     ports:

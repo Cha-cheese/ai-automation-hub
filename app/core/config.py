@@ -12,8 +12,7 @@ class Settings(BaseSettings):
     app_env: str = "production"
     secret_key: str = "change-me"
 
-    class Config:
-        env_file = ".env"
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 @lru_cache()
 def get_settings():
