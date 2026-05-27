@@ -1,0 +1,157 @@
+{
+  "name": "Email-to-Slack Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "email-to-slack",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "feac4021-5bb6-4c84-834e-16287a7dca23",
+      "name": "Webhook",
+      "webhookId": "f2c5a381-7e70-4d08-83ad-5ff8d1cb2ef8"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/automate",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"message\": \"hello\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"message\": \"hello\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "20444ccb-fa75-475c-a9d5-59dc854ec684",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json;\nconst result = body.result || 'No result';\nconst intent = body.intent || 'unknown';\nconst emoji = intent === 'process_email' ? '📬' : '🤖';\n\nreturn [{\n  json: {\n    slackMessage: `${emoji} *AI Automation Result*\\n*Intent:* ${intent}\\n\\n${result}`,\n    intent: intent,\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "73d56882-998c-4b67-bbb6-fbadba778453",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0B600ZA8P9",
+          "mode": "id"
+        },
+        "text": "={{ $json.slackMessage }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "5e7dfc1d-4937-446e-b9e4-c8319bfc920b",
+      "name": "Send a message",
+      "webhookId": "e2d6e8bb-40ba-45fc-852d-274a9110fcea",
+      "credentials": {
+        "slackApi": {
+          "id": "tJ1MyxOpA5Rsvxyv",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\": \"ok\", \"message\": \"{{ $('Code').first().json.slackMessage }}\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        832,
+        0
+      ],
+      "id": "66b39642-4a5d-4e3b-b96f-b345ab2cb44c",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9f1f0058-0191-4923-9b8e-a58cbc48d57e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "62ca9045de2b82cb1f292892af0b4fd051f66c7559914d34f2e6e719652c4260"
+  },
+  "id": "eluzhDb8NMrqTX4y",
+  "tags": []
+}
