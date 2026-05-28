@@ -1,17 +1,19 @@
-import asyncio
-import uuid
 from fastapi import FastAPI
 from pydantic import BaseModel
+import uuid
+import asyncio
 
 from app.agents.orchestrator import automation_graph
-from app.core.config import get_settings
-
-settings = get_settings()
 
 app = FastAPI()
 
 class Req(BaseModel):
     message: str
+
+
+@app.get("/")
+def root():
+    return {"status": "AI Automation Hub running"}
 
 
 @app.get("/health")
@@ -23,7 +25,7 @@ def health():
 async def automate(req: Req):
     session_id = str(uuid.uuid4())
 
-    initial_state = {
+    state = {
         "user_input": req.message,
         "intent": "",
         "email_data": {},
@@ -37,10 +39,9 @@ async def automate(req: Req):
     }
 
     try:
-        # HARD TIMEOUT FIX (LEVEL 4)
         result = await asyncio.wait_for(
-            asyncio.to_thread(automation_graph.invoke, initial_state),
-            timeout=5
+            asyncio.to_thread(automation_graph.invoke, state),
+            timeout=8
         )
 
         return {
@@ -49,9 +50,9 @@ async def automate(req: Req):
             "intent": result.get("intent", "general")
         }
 
-    except asyncio.TimeoutError:
+    except Exception as e:
         return {
             "session_id": session_id,
-            "result": "System timeout (agent too slow)",
-            "intent": "timeout"
+            "result": f"error: {str(e)}",
+            "intent": "error"
         }
