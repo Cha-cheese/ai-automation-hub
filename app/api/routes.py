@@ -14,28 +14,24 @@ def health():
 
 
 @app.post("/automate")
-def automate(req: dict, authorization: str = Header(None)):
+def automate(req, authorization: str = None):
 
-    user = verify_token(authorization)
+    try:
+        result = automation_graph({
+            "user_input": req.message
+        })
 
-    if not user:
-        return {"error": "unauthorized"}
+        return {
+            "session_id": "ok",
+            "result": result.get("final_response", str(result)),
+            "intent": result.get("intent", "unknown")
+        }
 
-    task = run_ai.delay(req["message"], user["user_id"])
-
-    return {
-        "task_id": task.id,
-        "status": "processing"
-    }
-
-class LoginReq(BaseModel):
-    username: str
-    password: str
-
-
-class LoginReq(BaseModel):
-    username: str
-    password: str
+    except Exception as e:
+        return {
+            "error": "internal_error",
+            "detail": str(e)
+        }
 
 
 @app.post("/login")
@@ -49,3 +45,5 @@ def login_api(req: LoginReq):
     return {
         "token": token
     }
+
+
