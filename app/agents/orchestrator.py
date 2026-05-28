@@ -42,10 +42,30 @@ def route_by_intent(state: AgentState) -> Literal["email", "calendar", "search",
     return mapping.get(state["intent"], "general")
 
 def general_node(state: AgentState) -> AgentState:
-    return {
-        **state,
-        "final_response": f"AI Automation Hub received: {state['user_input']}"
-    }
+    try:
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_core.messages import HumanMessage
+
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-1.5-flash",
+            google_api_key="YOUR_GOOGLE_API_KEY",
+            temperature=0.3,
+        )
+
+        response = llm.invoke([
+            HumanMessage(content=state["user_input"])
+        ])
+
+        return {
+            **state,
+            "final_response": response.content
+        }
+
+    except Exception as e:
+        return {
+            **state,
+            "final_response": f"Gemini error: {str(e)}"
+        }
 
 def email_node(state: AgentState) -> AgentState:
     return {
