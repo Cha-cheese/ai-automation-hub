@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.0-flash"
     tavily_api_key: str = ""
     google_service_account_json: str = "{}"
+    gmail_imap_email: str = ""
+    gmail_imap_app_password: str = ""
     slack_bot_token: str = ""
     slack_default_channel: str = "#general"
     upstash_redis_rest_url: str = ""

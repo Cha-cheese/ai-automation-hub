@@ -69,4 +69,5 @@ If the UI stays on `Agents working...`, check these first:
 - Set `GOOGLE_API_KEY`; without it, the app returns a demo-mode response instead of hanging.
 - Set `TAVILY_API_KEY` only when you need live search. Tavily calls time out after `TAVILY_TIMEOUT_SECONDS`.
 - Redis is optional for the demo. If `UPSTASH_REDIS_REST_URL` or token is missing, automations still run but `/history/{session_id}` is disabled.
+- Personal Gmail accounts should use `GMAIL_IMAP_EMAIL` plus `GMAIL_IMAP_APP_PASSWORD`. `GOOGLE_SERVICE_ACCOUNT_JSON` for Gmail requires Google Workspace domain-wide delegation.
 
