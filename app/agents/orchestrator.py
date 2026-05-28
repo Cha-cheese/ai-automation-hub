@@ -2,8 +2,12 @@ from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.agents.llm import build_gemini_llm, clean_json_response
+from app.core.config import get_settings
 from app.core.errors import safe_error_message
 import json
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+settings = get_settings()
 
 class AgentState(TypedDict):
     user_input: str
@@ -59,6 +63,15 @@ def route_by_intent(state: AgentState) -> Literal["email", "calendar", "search",
     return intent_map.get(state["intent"], "general")
 
 def general_node(state: AgentState) -> AgentState:
+    if settings.demo_mode:
+        return {
+            **state,
+            "final_response": (
+                "Demo assistant response: I can route requests to email processing, calendar scheduling, "
+                "Slack notifications, and web research. Try one of the example chips above."
+            ),
+        }
+
     try:
         llm = build_gemini_llm(max_tokens=512)
         response = llm.invoke([HumanMessage(content=state["user_input"])])

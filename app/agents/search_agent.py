@@ -2,10 +2,21 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from app.core.config import get_settings
 from app.core.errors import safe_error_message
 from app.agents.llm import build_gemini_llm
+from app.agents.demo_data import demo_search_response
 
 settings = get_settings()
 
 def search_node(state: dict) -> dict:
+    if settings.demo_mode:
+        return {
+            **state,
+            "search_results": [
+                {"title": "Demo source 1", "url": "https://example.com/eu-automation", "content": "Agentic workflow adoption is growing in European operations teams."},
+                {"title": "Demo source 2", "url": "https://example.com/n8n-langgraph", "content": "LangGraph and n8n make automation workflows auditable for stakeholders."},
+            ],
+            "final_response": demo_search_response(state["user_input"]),
+        }
+
     # Try Tavily if key exists
     if settings.tavily_api_key:
         try:

@@ -52,6 +52,7 @@ async def debug_config():
             "has_slack_bot_token": bool(settings.slack_bot_token),
             "has_google_service_account_json": settings.google_service_account_json not in ("", "{}"),
             "has_upstash_redis": bool(settings.upstash_redis_rest_url and settings.upstash_redis_rest_token),
+            "demo_mode": settings.demo_mode,
             "request_timeout_seconds": settings.request_timeout_seconds,
             "llm_timeout_seconds": settings.llm_timeout_seconds,
             "tavily_timeout_seconds": settings.tavily_timeout_seconds,

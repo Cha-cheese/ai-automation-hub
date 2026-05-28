@@ -43,6 +43,19 @@ docker-compose up
 API: `http://localhost:8000`  
 n8n: `http://localhost:5678`
 
+## Local Demo Mode
+
+Use this first when you want the UI to show complete results on your own machine without connecting real Gmail, Slack, or Calendar accounts.
+
+```bash
+cp .env.local.example .env
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/uvicorn app.api.routes:app --host 127.0.0.1 --port 8000
+```
+
+Then open `http://127.0.0.1:8000` and click the example chips.
+
 ## Deployment
 
 Render is a good portfolio/demo choice, but it is not required. This app is a standard Dockerized FastAPI service, so it can run on Render, Railway, Fly.io, Google Cloud Run, AWS App Runner, Azure Container Apps, or a VPS. For EU-focused demos, choose an EU region and keep API keys in the platform's environment variables.

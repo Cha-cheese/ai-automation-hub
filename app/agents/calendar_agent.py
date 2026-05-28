@@ -2,6 +2,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from app.core.config import get_settings
 from app.core.errors import safe_error_message
 from app.agents.llm import build_gemini_llm, clean_json_response
+from app.agents.demo_data import demo_calendar_event
 from app.tools.google_tools import load_service_account_info
 from datetime import datetime, timedelta
 import json
@@ -15,6 +16,18 @@ Return JSON only (no markdown, no code blocks):
 
 def calendar_node(state: dict) -> dict:
     try:
+        if settings.demo_mode:
+            event_data = demo_calendar_event(state["user_input"])
+            start = datetime.fromisoformat(event_data["start"])
+            return {
+                **state,
+                "calendar_event": event_data,
+                "final_response": (
+                    f"✅ Demo meeting scheduled for {start.strftime('%A %d %B %Y at %H:%M')} "
+                    "(mock Google Calendar event)."
+                ),
+            }
+
         llm = build_gemini_llm(max_tokens=256)
         response = llm.invoke([
             SystemMessage(content=EXTRACT_PROMPT),

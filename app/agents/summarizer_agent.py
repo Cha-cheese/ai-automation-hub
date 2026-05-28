@@ -1,6 +1,10 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.agents.llm import build_gemini_llm, clean_json_response
+from app.agents.demo_data import demo_email_summary
+from app.core.config import get_settings
 from app.core.errors import safe_error_message
+
+settings = get_settings()
 
 SUMMARIZE_PROMPT = """Summarize these emails briefly. For each email output:
 - Subject, From, Category (urgent/meeting/info/spam), 1-sentence summary.
@@ -12,6 +16,9 @@ def summarizer_node(state: dict) -> dict:
         error = state.get("error")
         note = f"\n\nSetup note: {error}" if error else ""
         return {**state, "summary": f"No emails to summarize.{note}", "category": "none"}
+
+    if settings.demo_mode:
+        return {**state, "summary": demo_email_summary(), "category": "urgent"}
 
     try:
         llm = build_gemini_llm(max_tokens=512)
