@@ -1,37 +1,17 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-import uuid
+from fastapi.staticfiles import StaticFiles
+import os
 
 from app.agents.orchestrator import automation_graph
 
 app = FastAPI()
 
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
-class Req(BaseModel):
-    message: str
-
-
-@app.get("/")
-def root():
-    return {"status": "AI Automation Hub running"}
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
-
-@app.post("/automate")
-def automate(req: Req):
-
-    session_id = str(uuid.uuid4())
-
-    result = automation_graph({
-        "user_input": req.message
-    })
-
-    return {
-        "session_id": session_id,
-        "result": result.get("final_response"),
-        "intent": result.get("intent")
-    }

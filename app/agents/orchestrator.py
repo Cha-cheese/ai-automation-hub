@@ -1,36 +1,42 @@
 from app.agents.llm import build_gemini_llm
+from app.tools.tools import get_emails, send_slack, create_calendar_event
 
 llm = build_gemini_llm()
 
 
-def planner(state):
-    prompt = f"Plan this: {state['user_input']}"
-    plan = llm.invoke(prompt)
-    state["plan"] = str(plan)
-    state["intent"] = "planned"
-    return state
+def automation_graph(state):
 
+    user_input = state["user_input"]
 
-def executor(state):
-    prompt = f"Execute this plan: {state.get('plan')}"
-    result = llm.invoke(prompt)
-    state["result"] = str(result)
-    state["intent"] = "executed"
-    return state
+    # 🧠 STEP 1: INTENT DETECTION
+    intent_prompt = f"""
+    Classify this request:
+    - email
+    - slack
+    - calendar
+    - general
 
+    Input: {user_input}
+    """
 
-def reviewer(state):
-    prompt = f"Improve this result: {state.get('result')}"
-    final = llm.invoke(prompt)
-    state["final_response"] = str(final)
-    state["intent"] = "completed"
-    return state
+    intent = str(llm.invoke(intent_prompt)).lower()
 
+    state["intent"] = intent
 
-def automation_graph(state: dict):
+    # 🧠 STEP 2: ROUTING
 
-    state = planner(state)
-    state = executor(state)
-    state = reviewer(state)
+    if "email" in intent:
+        result = get_emails()
+
+    elif "slack" in intent:
+        result = send_slack(user_input)
+
+    elif "calendar" in intent:
+        result = create_calendar_event(user_input)
+
+    else:
+        result = llm.invoke(user_input)
+
+    state["final_response"] = str(result)
 
     return state

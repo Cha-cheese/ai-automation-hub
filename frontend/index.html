@@ -1,97 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI Automation Hub</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
-  .hero { text-align: center; padding: 48px 24px 32px; }
-  .hero h1 { font-size: 2.2rem; font-weight: 700; background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .hero p { color: #94a3b8; margin-top: 8px; font-size: 1rem; }
-  .demo-box { max-width: 720px; margin: 0 auto; padding: 0 24px 48px; }
-  .examples { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-  .chip { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 6px 14px; font-size: 0.8rem; cursor: pointer; color: #94a3b8; transition: all 0.2s; }
-  .chip:hover { border-color: #60a5fa; color: #60a5fa; }
-  .input-row { display: flex; gap: 10px; }
-  textarea { flex: 1; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px; color: #e2e8f0; font-size: 0.95rem; resize: none; height: 80px; outline: none; }
-  textarea:focus { border-color: #60a5fa; }
-  button { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: #fff; border: none; border-radius: 12px; padding: 14px 24px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
-  button:hover { opacity: 0.85; }
-  button:disabled { opacity: 0.4; cursor: not-allowed; }
-  .result { margin-top: 20px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; display: none; }
-  .result.error { border-color: #ef4444; }
-  .result.show { display: block; }
-  .intent-badge { display: inline-block; background: #1d4ed8; color: #bfdbfe; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; margin-bottom: 12px; }
-  .result-text { color: #cbd5e1; line-height: 1.6; white-space: pre-wrap; }
-  .loader { display: none; text-align: center; padding: 20px; color: #60a5fa; }
-  .loader.show { display: block; }
-</style>
+  <title>AI Automation Hub</title>
 </head>
 <body>
-<div class="hero">
-  <h1>⚡ AI Automation Hub</h1>
-  <p>Multi-agent system — describe what you need in plain English</p>
-  <p style="font-size:0.75rem;color:#64748b;">Build 2026-05-28-timeout-v3</p>
-</div>
-<div class="demo-box">
-  <div class="examples">
-    <span class="chip" onclick="fill(this)">📧 Check and summarize my emails</span>
-    <span class="chip" onclick="fill(this)">📅 Schedule a meeting with John tomorrow at 3pm</span>
-    <span class="chip" onclick="fill(this)">🔍 Search latest AI news in Germany</span>
-    <span class="chip" onclick="fill(this)">💬 Send a standup update to Slack</span>
-  </div>
-  <div class="input-row">
-    <textarea id="msg" placeholder="Type your request..."></textarea>
-    <button id="btn" onclick="run()">Run →</button>
-  </div>
-  <div class="loader" id="loader">🤖 Agents working...</div>
-  <div class="result" id="result">
-    <div class="intent-badge" id="intent-badge">intent</div>
-    <div class="result-text" id="result-text"></div>
-  </div>
-</div>
+  <h1>AI Automation Hub</h1>
+
+  <input id="msg" placeholder="Type request..." />
+  <button onclick="send()">Send</button>
+
+  <pre id="out"></pre>
+
 <script>
-function fill(el) {
-  document.getElementById('msg').value = el.textContent.replace(/^[^\w]+/, '').trim();
-}
-async function run() {
-  const msg = document.getElementById('msg').value.trim();
-  if (!msg) return;
-  const btn = document.getElementById('btn');
-  btn.disabled = true;
-  document.getElementById('loader').classList.add('show');
-  document.getElementById('result').classList.remove('show', 'error');
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 50000);
-  try {
-    const res = await fetch('/automate', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({message: msg}),
-      signal: controller.signal
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.detail || `Request failed with ${res.status}`);
-    }
-    document.getElementById('intent-badge').textContent = data.intent || 'unknown';
-    document.getElementById('result-text').textContent = data.result || 'No result returned.';
-    document.getElementById('result').classList.add('show');
-  } catch(e) {
-    const message = e.name === 'AbortError'
-      ? 'Request timed out in the browser. The backend or an external API is taking too long.'
-      : e.message;
-    document.getElementById('intent-badge').textContent = 'error';
-    document.getElementById('result-text').textContent = 'Error: ' + message;
-    document.getElementById('result').classList.add('show', 'error');
-  } finally {
-    clearTimeout(timeout);
-    btn.disabled = false;
-    document.getElementById('loader').classList.remove('show');
-  }
+async function send() {
+  const msg = document.getElementById("msg").value;
+
+  const res = await fetch("/automate", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({message: msg})
+  });
+
+  const data = await res.json();
+  document.getElementById("out").innerText =
+    JSON.stringify(data, null, 2);
 }
 </script>
+
 </body>
 </html>
