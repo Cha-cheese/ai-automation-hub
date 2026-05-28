@@ -5,11 +5,14 @@ from pydantic import BaseModel
 from app.agents.orchestrator import automation_graph
 from upstash_redis import Redis
 from app.core.config import get_settings
+import asyncio
 import uuid, json
 from datetime import datetime
 
 settings = get_settings()
-redis = Redis(url=settings.upstash_redis_rest_url, token=settings.upstash_redis_rest_token)
+redis = None
+if settings.upstash_redis_rest_url and settings.upstash_redis_rest_token:
+    redis = Redis(url=settings.upstash_redis_rest_url, token=settings.upstash_redis_rest_token)
 
 app = FastAPI(title="AI Automation Hub", version="1.0.0")
 app.add_middleware(
@@ -49,13 +52,22 @@ async def automate(req: AutomationRequest):
             "final_response": "",
             "error": "",
         }
-        result = automation_graph.invoke(initial_state)
-        redis.setex(f"session:{session_id}", 3600, json.dumps({
-            "input": req.message,
-            "intent": result.get("intent"),
-            "response": result.get("final_response"),
-            "timestamp": datetime.now().isoformat(),
-        }))
+        result = await asyncio.wait_for(
+            asyncio.to_thread(automation_graph.invoke, initial_state),
+            timeout=settings.request_timeout_seconds,
+        )
+
+        if redis:
+            try:
+                redis.setex(f"session:{session_id}", 3600, json.dumps({
+                    "input": req.message,
+                    "intent": result.get("intent"),
+                    "response": result.get("final_response"),
+                    "timestamp": datetime.now().isoformat(),
+                }))
+            except Exception:
+                pass
+
         return AutomationResponse(
             session_id=session_id,
             result=result.get("final_response", "Done"),
@@ -64,13 +76,21 @@ async def automate(req: AutomationRequest):
                 "slack_sent": result.get("slack_sent"),
                 "calendar_event": result.get("calendar_event", {}).get("id"),
                 "search_count": len(result.get("search_results", [])),
+                "error": result.get("error", ""),
             }
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=504,
+            detail=f"Automation timed out after {settings.request_timeout_seconds} seconds. Check external API keys/network latency.",
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/history/{session_id}")
 async def get_history(session_id: str):
+    if not redis:
+        raise HTTPException(status_code=503, detail="Redis is not configured")
     data = redis.get(f"session:{session_id}")
     if not data:
         raise HTTPException(status_code=404, detail="Session not found")

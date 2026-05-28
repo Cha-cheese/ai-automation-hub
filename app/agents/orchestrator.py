@@ -1,17 +1,8 @@
 from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
-from app.core.config import get_settings
+from app.agents.llm import build_gemini_llm, clean_json_response
 import json
-
-settings = get_settings()
-
-llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash",
-    google_api_key=settings.google_api_key,
-    max_tokens=1024,
-)
 
 class AgentState(TypedDict):
     user_input: str
@@ -31,21 +22,27 @@ SYSTEM_ROUTER = """You are a routing agent. Analyze the user's request and retur
 
 Respond ONLY with valid JSON, no markdown, no explanation."""
 
+def heuristic_intent(user_input: str) -> str:
+    text = user_input.lower()
+    if any(word in text for word in ["email", "gmail", "inbox", "mail"]):
+        return "process_email"
+    if any(word in text for word in ["meeting", "schedule", "calendar", "appointment", "นัด", "ประชุม"]):
+        return "schedule_meeting"
+    if any(word in text for word in ["search", "latest", "news", "research", "ค้นหา", "ข่าว"]):
+        return "web_search"
+    return "general_query"
+
 def router_node(state: AgentState) -> AgentState:
-    response = llm.invoke([
-        SystemMessage(content=SYSTEM_ROUTER),
-        HumanMessage(content=state["user_input"])
-    ])
     try:
-        text = response.content.strip()
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        parsed = json.loads(text.strip())
+        llm = build_gemini_llm(max_tokens=256)
+        response = llm.invoke([
+            SystemMessage(content=SYSTEM_ROUTER),
+            HumanMessage(content=state["user_input"])
+        ])
+        parsed = json.loads(clean_json_response(response.content))
         return {**state, "intent": parsed.get("intent", "general_query")}
-    except:
-        return {**state, "intent": "general_query"}
+    except Exception as e:
+        return {**state, "intent": heuristic_intent(state["user_input"]), "error": str(e)}
 
 def route_by_intent(state: AgentState) -> Literal["email", "calendar", "search", "general"]:
     intent_map = {
@@ -57,8 +54,19 @@ def route_by_intent(state: AgentState) -> Literal["email", "calendar", "search",
     return intent_map.get(state["intent"], "general")
 
 def general_node(state: AgentState) -> AgentState:
-    response = llm.invoke([HumanMessage(content=state["user_input"])])
-    return {**state, "final_response": response.content}
+    try:
+        llm = build_gemini_llm(max_tokens=512)
+        response = llm.invoke([HumanMessage(content=state["user_input"])])
+        return {**state, "final_response": response.content}
+    except Exception as e:
+        return {
+            **state,
+            "error": str(e),
+            "final_response": (
+                "Demo mode response: the router understood your request, but Gemini is not available. "
+                "Set GOOGLE_API_KEY in the environment and redeploy to enable live AI responses."
+            ),
+        }
 
 def build_graph():
     graph = StateGraph(AgentState)

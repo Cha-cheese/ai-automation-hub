@@ -1,15 +1,11 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.core.config import get_settings
+from app.agents.llm import build_gemini_llm, clean_json_response
+from app.tools.google_tools import load_service_account_info
 from datetime import datetime, timedelta
 import json
 
 settings = get_settings()
-llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash",
-    google_api_key=settings.google_api_key,
-    max_tokens=256,
-)
 
 EXTRACT_PROMPT = f"""Extract meeting details from this text.
 Current datetime: {datetime.now().isoformat()}
@@ -18,26 +14,22 @@ Return JSON only (no markdown, no code blocks):
 
 def calendar_node(state: dict) -> dict:
     try:
+        llm = build_gemini_llm(max_tokens=256)
         response = llm.invoke([
             SystemMessage(content=EXTRACT_PROMPT),
             HumanMessage(content=state["user_input"])
         ])
-        text = response.content.strip()
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        event_data = json.loads(text.strip())
+        event_data = json.loads(clean_json_response(response.content))
 
         start = datetime.fromisoformat(event_data["start_time"])
         end = start + timedelta(minutes=event_data.get("duration_minutes", 60))
 
         # Try real Google Calendar if credentials exist
-        if settings.google_service_account_json != "{}":
+        if settings.google_service_account_json not in ("", "{}"):
             try:
                 from googleapiclient.discovery import build
                 from google.oauth2 import service_account
-                creds_json = json.loads(settings.google_service_account_json)
+                creds_json = load_service_account_info(settings.google_service_account_json)
                 creds = service_account.Credentials.from_service_account_info(
                     creds_json,
                     scopes=["https://www.googleapis.com/auth/calendar"]
@@ -56,7 +48,15 @@ def calendar_node(state: dict) -> dict:
                     "final_response": f"✅ Meeting '{event_data['title']}' scheduled for {start.strftime('%Y-%m-%d %H:%M')} (Google Calendar)"
                 }
             except Exception as cal_err:
-                pass
+                return {
+                    **state,
+                    "calendar_event": {"mock": True, "title": event_data["title"], "start": start.isoformat()},
+                    "error": str(cal_err),
+                    "final_response": (
+                        f"Meeting '{event_data['title']}' parsed for {start.strftime('%A %d %B %Y at %H:%M')}, "
+                        "but Google Calendar could not be reached. Showing a mock event instead."
+                    )
+                }
 
         # Mock response if no calendar credentials
         return {
@@ -66,4 +66,11 @@ def calendar_node(state: dict) -> dict:
         }
 
     except Exception as e:
-        return {**state, "error": str(e), "final_response": f"Could not parse meeting details: {e}"}
+        return {
+            **state,
+            "error": str(e),
+            "final_response": (
+                "Could not create a calendar event yet. Make sure GOOGLE_API_KEY is set for date parsing, "
+                "and GOOGLE_SERVICE_ACCOUNT_JSON is set if you want real Google Calendar writes."
+            )
+        }

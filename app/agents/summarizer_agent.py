@@ -1,13 +1,5 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
-from app.core.config import get_settings
-
-settings = get_settings()
-llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash",
-    google_api_key=settings.google_api_key,
-    max_tokens=512,
-)
+from app.agents.llm import build_gemini_llm, clean_json_response
 
 SUMMARIZE_PROMPT = """Summarize these emails briefly. For each email output:
 - Subject, From, Category (urgent/meeting/info/spam), 1-sentence summary.
@@ -16,25 +8,27 @@ Format as JSON array. No markdown, no code blocks, only raw JSON."""
 def summarizer_node(state: dict) -> dict:
     emails = state.get("email_data", {}).get("emails", [])
     if not emails:
-        return {**state, "summary": "No emails to summarize.", "category": "none"}
+        error = state.get("error")
+        note = f"\n\nSetup note: {error}" if error else ""
+        return {**state, "summary": f"No emails to summarize.{note}", "category": "none"}
 
-    response = llm.invoke([
-        SystemMessage(content=SUMMARIZE_PROMPT),
-        HumanMessage(content=str(emails))
-    ])
     try:
+        llm = build_gemini_llm(max_tokens=512)
+        response = llm.invoke([
+            SystemMessage(content=SUMMARIZE_PROMPT),
+            HumanMessage(content=str(emails))
+        ])
         import json
-        text = response.content.strip()
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        summaries = json.loads(text.strip())
+        summaries = json.loads(clean_json_response(response.content))
         urgent = [s for s in summaries if s.get("category") == "urgent"]
         return {
             **state,
             "summary": response.content,
             "category": "urgent" if urgent else "normal"
         }
-    except:
-        return {**state, "summary": response.content, "category": "normal"}
+    except Exception as e:
+        fallback = "\n".join(
+            f"- {email.get('subject', '(no subject)')} from {email.get('from', 'unknown')}: {email.get('snippet', '')}"
+            for email in emails
+        )
+        return {**state, "summary": fallback, "category": "normal", "error": str(e)}

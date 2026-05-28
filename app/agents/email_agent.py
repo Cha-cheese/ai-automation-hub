@@ -1,12 +1,12 @@
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from app.core.config import get_settings
-import json, base64
+from app.tools.google_tools import load_service_account_info
 
 settings = get_settings()
 
 def get_gmail_service():
-    creds_json = json.loads(settings.google_service_account_json)
+    creds_json = load_service_account_info(settings.google_service_account_json)
     creds = service_account.Credentials.from_service_account_info(
         creds_json,
         scopes=["https://www.googleapis.com/auth/gmail.readonly"]
