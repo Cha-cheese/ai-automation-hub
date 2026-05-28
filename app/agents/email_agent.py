@@ -7,6 +7,9 @@ settings = get_settings()
 def email_node(state: dict):
 
     try:
+        if not settings.gmail_imap_email:
+            return {**state, "final_response": "Email not configured"}
+
         mail = imaplib.IMAP4_SSL("imap.gmail.com")
         mail.login(settings.gmail_imap_email, settings.gmail_imap_app_password)
 
@@ -19,19 +22,13 @@ def email_node(state: dict):
             _, msg_data = mail.fetch(num, "(RFC822)")
             msg = email.message_from_bytes(msg_data[0][1])
 
-            subject = msg.get("subject", "No subject")
-            sender = msg.get("from", "Unknown")
+            emails.append(f"{msg.get('subject')} - {msg.get('from')}")
 
-            emails.append(f"{subject} — {sender}")
-
-        if not emails:
-            summary = "No new emails"
-        else:
-            summary = "\n".join([f"- {e}" for e in emails])
+        summary = "\n".join(emails) if emails else "No new emails"
 
         return {
             **state,
-            "final_response": f"📧 Gmail Summary:\n{summary}"
+            "final_response": "📧 Emails:\n" + summary
         }
 
     except Exception as e:

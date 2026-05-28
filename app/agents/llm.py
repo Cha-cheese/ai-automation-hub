@@ -5,33 +5,24 @@ import json
 settings = get_settings()
 
 def build_gemini_llm(max_tokens=512):
+    if not settings.google_api_key:
+        raise Exception("Missing GOOGLE_API_KEY")
+
     return ChatGoogleGenerativeAI(
-        model=settings.gemini_model or "gemini-1.5-flash",
+        model=settings.gemini_model,
         google_api_key=settings.google_api_key,
         temperature=0.3,
         max_output_tokens=max_tokens,
     )
 
-
 def clean_json_response(text: str):
-    return text.strip().replace("```json", "").replace("```", "")
-
+    try:
+        return text.strip().replace("```json", "").replace("```", "")
+    except:
+        return text
 
 def safe_json_load(text: str):
-    """
-    Safe JSON parser for LLM outputs
-    """
     try:
-        return json.loads(text)
-    except Exception:
-        # fallback cleanup
-        cleaned = (
-            text.strip()
-            .replace("```json", "")
-            .replace("```", "")
-            .strip()
-        )
-        try:
-            return json.loads(cleaned)
-        except Exception:
-            return {"raw": text}
+        return json.loads(clean_json_response(text))
+    except:
+        return {"intent": "general_query"}

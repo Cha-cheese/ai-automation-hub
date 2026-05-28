@@ -1,10 +1,11 @@
-from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
+from typing import TypedDict, Literal
+from app.agents.email_agent import email_node
+from app.agents.calendar_agent import calendar_node
+from app.agents.search_agent import search_node
+from app.agents.slack_agent import slack_node
+from app.agents.llm import build_gemini_llm, safe_json_load
 from langchain_core.messages import HumanMessage, SystemMessage
-from app.agents.llm import build_gemini_llm, clean_json_response, safe_json_load
-from app.core.config import get_settings
-
-settings = get_settings()
 
 class AgentState(TypedDict):
     user_input: str
@@ -18,41 +19,39 @@ class AgentState(TypedDict):
     final_response: str
     error: str
 
-SYSTEM_ROUTER = """Return JSON: {"intent": "process_email | schedule_meeting | web_search | general_query"}"""
 
-def router_node(state: AgentState) -> AgentState:
-    llm = build_gemini_llm(256)
-    res = llm.invoke([
-        SystemMessage(content=SYSTEM_ROUTER),
-        HumanMessage(content=state["user_input"])
-    ])
+def router(state: AgentState):
+    try:
+        llm = build_gemini_llm(max_tokens=200)
 
-    data = safe_json_load(clean_json_response(res.content))
-    return {**state, "intent": data.get("intent", "general_query")}
+        res = llm.invoke([
+            SystemMessage(content="Return JSON: intent = email/calendar/search/general"),
+            HumanMessage(content=state["user_input"])
+        ])
 
-def route(state: AgentState) -> Literal["email", "calendar", "search", "general"]:
-    return {
-        "process_email": "email",
-        "schedule_meeting": "calendar",
-        "web_search": "search"
-    }.get(state["intent"], "general")
+        parsed = safe_json_load(res.content)
 
-def general_node(state: AgentState) -> AgentState:
-    llm = build_gemini_llm(512)
-    res = llm.invoke([HumanMessage(content=state["user_input"])])
-    return {**state, "final_response": res.content}
+        return {**state, "intent": parsed.get("intent", "general")}
+    except:
+        return {**state, "intent": "general"}
+
+
+def route(state: AgentState) -> Literal["email","calendar","search","general"]:
+    return state.get("intent", "general")
+
+
+def general_node(state: AgentState):
+    return {**state, "final_response": f"AI Automation Hub received: {state['user_input']}"}
+
 
 def build_graph():
     g = StateGraph(AgentState)
 
-    from app.agents.email_agent import email_node
-    from app.agents.calendar_agent import calendar_node
-    from app.agents.search_agent import search_node
-
-    g.add_node("router", router_node)
+    g.add_node("router", router)
     g.add_node("email", email_node)
     g.add_node("calendar", calendar_node)
     g.add_node("search", search_node)
+    g.add_node("slack", slack_node)
     g.add_node("general", general_node)
 
     g.set_entry_point("router")
@@ -61,12 +60,13 @@ def build_graph():
         "email": "email",
         "calendar": "calendar",
         "search": "search",
-        "general": "general"
+        "general": "general",
     })
 
-    g.add_edge("email", END)
+    g.add_edge("email", "slack")
     g.add_edge("calendar", END)
     g.add_edge("search", END)
+    g.add_edge("slack", END)
     g.add_edge("general", END)
 
     return g.compile()
