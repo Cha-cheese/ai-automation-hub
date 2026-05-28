@@ -1,5 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.core.config import get_settings
+from app.core.errors import safe_error_message
 from app.agents.llm import build_gemini_llm, clean_json_response
 from app.tools.google_tools import load_service_account_info
 from datetime import datetime, timedelta
@@ -51,7 +52,7 @@ def calendar_node(state: dict) -> dict:
                 return {
                     **state,
                     "calendar_event": {"mock": True, "title": event_data["title"], "start": start.isoformat()},
-                    "error": str(cal_err),
+                    "error": safe_error_message(cal_err),
                     "final_response": (
                         f"Meeting '{event_data['title']}' parsed for {start.strftime('%A %d %B %Y at %H:%M')}, "
                         "but Google Calendar could not be reached. Showing a mock event instead."
@@ -68,7 +69,7 @@ def calendar_node(state: dict) -> dict:
     except Exception as e:
         return {
             **state,
-            "error": str(e),
+            "error": safe_error_message(e),
             "final_response": (
                 "Could not create a calendar event yet. Make sure GOOGLE_API_KEY is set for date parsing, "
                 "and GOOGLE_SERVICE_ACCOUNT_JSON is set if you want real Google Calendar writes."

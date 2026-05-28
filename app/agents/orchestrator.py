@@ -2,6 +2,7 @@ from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.agents.llm import build_gemini_llm, clean_json_response
+from app.core.errors import safe_error_message
 import json
 
 class AgentState(TypedDict):
@@ -46,7 +47,7 @@ def router_node(state: AgentState) -> AgentState:
         parsed = json.loads(clean_json_response(response.content))
         return {**state, "intent": parsed.get("intent", "general_query")}
     except Exception as e:
-        return {**state, "intent": heuristic, "error": str(e)}
+        return {**state, "intent": heuristic, "error": safe_error_message(e)}
 
 def route_by_intent(state: AgentState) -> Literal["email", "calendar", "search", "general"]:
     intent_map = {
@@ -65,7 +66,7 @@ def general_node(state: AgentState) -> AgentState:
     except Exception as e:
         return {
             **state,
-            "error": str(e),
+            "error": safe_error_message(e),
             "final_response": (
                 "Demo mode response: the router understood your request, but Gemini is not available. "
                 "Set GOOGLE_API_KEY in the environment and redeploy to enable live AI responses."

@@ -1,6 +1,7 @@
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from app.core.config import get_settings
+from app.core.errors import safe_error_message
 
 settings = get_settings()
 
@@ -24,6 +25,6 @@ def slack_node(state: dict) -> dict:
         slack_client.chat_postMessage(channel=channel, text=message, mrkdwn=True)
         return {**state, "slack_sent": True, "final_response": f"Summary sent to Slack {channel}"}
     except SlackApiError as e:
-        return {**state, "slack_sent": False, "error": str(e), "final_response": summary}
+        return {**state, "slack_sent": False, "error": safe_error_message(e), "final_response": summary}
     except Exception as e:
-        return {**state, "slack_sent": False, "error": str(e), "final_response": summary}
+        return {**state, "slack_sent": False, "error": safe_error_message(e), "final_response": summary}

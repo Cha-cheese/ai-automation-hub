@@ -1,5 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.core.config import get_settings
+from app.core.errors import safe_error_message
 from app.agents.llm import build_gemini_llm
 
 settings = get_settings()
@@ -37,7 +38,7 @@ def search_node(state: dict) -> dict:
             return {
                 **state,
                 "search_results": [],
-                "error": str(e),
+                "error": safe_error_message(e),
                 "final_response": (
                     "Live web search is not available right now. Check TAVILY_API_KEY/network access, "
                     "then try again. The backend returned instead of waiting forever."
@@ -57,6 +58,6 @@ def search_node(state: dict) -> dict:
             "Search agent received your request, but neither Tavily nor Gemini is available. "
             "Set TAVILY_API_KEY for live search and GOOGLE_API_KEY for synthesis."
         )
-        return {**state, "search_results": [], "error": str(e), "final_response": final_response}
+        return {**state, "search_results": [], "error": safe_error_message(e), "final_response": final_response}
 
     return {**state, "search_results": [], "final_response": final_response}

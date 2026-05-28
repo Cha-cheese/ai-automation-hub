@@ -1,6 +1,7 @@
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from app.core.config import get_settings
+from app.core.errors import safe_error_message
 from app.tools.google_tools import load_service_account_info
 
 settings = get_settings()
@@ -38,4 +39,4 @@ def email_node(state: dict) -> dict:
         
         return {**state, "email_data": {"emails": emails, "count": len(emails)}}
     except Exception as e:
-        return {**state, "email_data": {}, "error": str(e)}
+        return {**state, "email_data": {}, "error": safe_error_message(e)}

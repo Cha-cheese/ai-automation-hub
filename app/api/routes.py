@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from app.agents.orchestrator import automation_graph
 from upstash_redis import Redis
 from app.core.config import get_settings
+from app.core.errors import safe_error_message
 import asyncio
 import uuid, json
 from datetime import datetime
@@ -97,7 +98,7 @@ async def automate(req: AutomationRequest):
                 "slack_sent": result.get("slack_sent"),
                 "calendar_event": result.get("calendar_event", {}).get("id"),
                 "search_count": len(result.get("search_results", [])),
-                "error": result.get("error", ""),
+                "error": safe_error_message(result.get("error", "")),
             }
         )
     except asyncio.TimeoutError:
@@ -106,7 +107,7 @@ async def automate(req: AutomationRequest):
             detail=f"Automation timed out after {settings.request_timeout_seconds} seconds. Check external API keys/network latency.",
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_message(e))
 
 @app.get("/history/{session_id}")
 async def get_history(session_id: str):

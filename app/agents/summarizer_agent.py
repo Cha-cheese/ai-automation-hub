@@ -1,5 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.agents.llm import build_gemini_llm, clean_json_response
+from app.core.errors import safe_error_message
 
 SUMMARIZE_PROMPT = """Summarize these emails briefly. For each email output:
 - Subject, From, Category (urgent/meeting/info/spam), 1-sentence summary.
@@ -31,4 +32,4 @@ def summarizer_node(state: dict) -> dict:
             f"- {email.get('subject', '(no subject)')} from {email.get('from', 'unknown')}: {email.get('snippet', '')}"
             for email in emails
         )
-        return {**state, "summary": fallback, "category": "normal", "error": str(e)}
+        return {**state, "summary": fallback, "category": "normal", "error": safe_error_message(e)}
