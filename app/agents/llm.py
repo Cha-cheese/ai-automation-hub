@@ -10,13 +10,10 @@ def build_gemini_llm(max_tokens=512):
         google_api_key=settings.google_api_key,
         temperature=0,
         timeout=settings.llm_timeout_seconds,
-        max_tokens=max_tokens,
     )
 
 def clean_json_response(text: str) -> str:
     text = text.strip()
-
     text = re.sub(r"```json", "", text)
     text = re.sub(r"```", "", text)
-
     return text.strip()
