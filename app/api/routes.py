@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import uuid
 
-from app.workers.tasks import run_automation
+from app.agents.orchestrator import automation_graph
 
 app = FastAPI()
 
@@ -24,12 +24,14 @@ def health():
 @app.post("/automate")
 def automate(req: Req):
 
-    job_id = str(uuid.uuid4())
+    session_id = str(uuid.uuid4())
 
-    task = run_automation.delay(req.message)
+    result = automation_graph({
+        "user_input": req.message
+    })
 
     return {
-        "job_id": job_id,
-        "task_id": task.id,
-        "status": "queued"
+        "session_id": session_id,
+        "result": result.get("final_response"),
+        "intent": result.get("intent")
     }

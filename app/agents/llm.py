@@ -11,5 +11,6 @@ def build_gemini_llm():
     return ChatGoogleGenerativeAI(
         model="gemini-1.5-flash",
         google_api_key=api_key,
-        temperature=0.3
+        temperature=0.3,
+        max_output_tokens=512,
     )
