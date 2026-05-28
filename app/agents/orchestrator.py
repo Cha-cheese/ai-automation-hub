@@ -1,60 +1,102 @@
-from langgraph.graph import StateGraph, END
 from app.agents.llm import build_gemini_llm
+
+# 🧠 SAFE IMPORT (กัน deploy crash)
+try:
+    from langgraph.graph import StateGraph, END
+    HAS_LANGGRAPH = True
+except Exception:
+    StateGraph = None
+    END = None
+    HAS_LANGGRAPH = False
+
 
 llm = build_gemini_llm()
 
 
-# 🧠 PLANNER AGENT
+# -------------------------
+# 🧠 SAFE UTIL
+# -------------------------
+def safe_llm(prompt: str) -> str:
+    try:
+        res = llm.invoke(prompt)
+        return str(res)
+    except Exception as e:
+        return f"LLM_ERROR: {str(e)}"
+
+
+# -------------------------
+# 🧠 AGENTS
+# -------------------------
 def planner(state):
+    user_input = state.get("user_input", "")
+
     prompt = f"""
-    You are a planner agent.
-    Break this task into steps:
+You are a planner agent.
+Break this task into steps:
 
-    {state['user_input']}
-    """
+{user_input}
+"""
 
-    plan = llm.invoke(prompt)
+    plan = safe_llm(prompt)
 
     return {
         **state,
-        "plan": str(plan),
+        "plan": plan,
         "intent": "planned"
     }
 
 
-# ⚙️ EXECUTOR AGENT
 def executor(state):
-    prompt = f"""
-    Execute this plan:
-    {state.get('plan')}
-    """
+    plan = state.get("plan", "")
 
-    result = llm.invoke(prompt)
+    prompt = f"""
+Execute this plan step by step:
+
+{plan}
+"""
+
+    result = safe_llm(prompt)
 
     return {
         **state,
-        "result": str(result),
+        "result": result,
         "intent": "executed"
     }
 
 
-# 🧪 REVIEW AGENT
 def reviewer(state):
-    prompt = f"""
-    Review this output and improve if needed:
-    {state.get('result')}
-    """
+    result = state.get("result", "")
 
-    review = llm.invoke(prompt)
+    prompt = f"""
+Review and improve this output:
+
+{result}
+"""
+
+    review = safe_llm(prompt)
 
     return {
         **state,
-        "final_response": str(review),
+        "final_response": review,
         "intent": "completed"
     }
 
 
+# -------------------------
+# 🧠 GRAPH BUILDER (SAFE)
+# -------------------------
 def build_graph():
+
+    # fallback mode ถ้าไม่มี langgraph
+    if not HAS_LANGGRAPH:
+        def fallback(state):
+            state = planner(state)
+            state = executor(state)
+            state = reviewer(state)
+            return state
+
+        return fallback
+
     graph = StateGraph(dict)
 
     graph.add_node("planner", planner)
