@@ -2,8 +2,7 @@ fastapi==0.111.0
 uvicorn[standard]==0.29.0
 langchain==0.2.5
 langgraph==0.1.1
-langchain-anthropic==0.1.15
-anthropic==0.28.0
+langchain-google-genai==1.0.6
 tavily-python==0.3.3
 google-api-python-client==2.130.0
 google-auth-httplib2==0.2.0

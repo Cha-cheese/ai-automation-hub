@@ -13,3 +13,4 @@ __pycache__/
 .env
 __pycache__/
 *.pyc
+google-service-account.json

@@ -1,15 +1,15 @@
-from typing import TypedDict, Annotated, Literal
+from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
-from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.core.config import get_settings
 import json
 
 settings = get_settings()
 
-llm = ChatAnthropic(
-    model="claude-sonnet-4-20250514",
-    api_key=settings.anthropic_api_key,
+llm = ChatGoogleGenerativeAI(
+    model="gemini-1.5-flash",
+    google_api_key=settings.google_api_key,
     max_tokens=1024,
 )
 
@@ -32,13 +32,17 @@ SYSTEM_ROUTER = """You are a routing agent. Analyze the user's request and retur
 Respond ONLY with valid JSON, no markdown, no explanation."""
 
 def router_node(state: AgentState) -> AgentState:
-    """Determine intent from user input"""
     response = llm.invoke([
         SystemMessage(content=SYSTEM_ROUTER),
         HumanMessage(content=state["user_input"])
     ])
     try:
-        parsed = json.loads(response.content)
+        text = response.content.strip()
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        parsed = json.loads(text.strip())
         return {**state, "intent": parsed.get("intent", "general_query")}
     except:
         return {**state, "intent": "general_query"}
@@ -60,8 +64,7 @@ def build_graph():
     graph = StateGraph(AgentState)
     graph.add_node("router", router_node)
     graph.add_node("general", general_node)
-    
-    # Import agents lazily to avoid circular imports
+
     from app.agents.email_agent import email_node
     from app.agents.summarizer_agent import summarizer_node
     from app.agents.slack_agent import slack_node

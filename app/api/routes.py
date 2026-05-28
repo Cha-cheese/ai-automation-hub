@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -36,7 +36,6 @@ async def health():
 @app.post("/automate", response_model=AutomationResponse)
 async def automate(req: AutomationRequest):
     session_id = req.session_id or str(uuid.uuid4())
-    
     try:
         initial_state = {
             "user_input": req.message,
@@ -50,17 +49,13 @@ async def automate(req: AutomationRequest):
             "final_response": "",
             "error": "",
         }
-        
         result = automation_graph.invoke(initial_state)
-        
-        # Save to Redis (expire in 1 hour)
         redis.setex(f"session:{session_id}", 3600, json.dumps({
             "input": req.message,
             "intent": result.get("intent"),
             "response": result.get("final_response"),
             "timestamp": datetime.now().isoformat(),
         }))
-        
         return AutomationResponse(
             session_id=session_id,
             result=result.get("final_response", "Done"),
@@ -81,7 +76,6 @@ async def get_history(session_id: str):
         raise HTTPException(status_code=404, detail="Session not found")
     return json.loads(data)
 
-# Mount frontend
 try:
     app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 except:
