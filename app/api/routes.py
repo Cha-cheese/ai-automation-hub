@@ -85,3 +85,16 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 if os.path.exists(FRONTEND_DIR):
     app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+
+
+@app.get("/")
+def root():
+    return {
+        "status": "AI Automation Hub running",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
+@app.head("/")
+def head():
+    return {}
