@@ -4,8 +4,10 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from app.agents.orchestrator import automation_graph
+from app.core.queue import add_job
 
 app = FastAPI()
+
 
 class Req(BaseModel):
     message: str
@@ -13,7 +15,7 @@ class Req(BaseModel):
 
 @app.get("/")
 def root():
-    return {"status": "AI Automation Hub running", "level": 4}
+    return {"status": "LEVEL 5 AI Automation Hub"}
 
 
 @app.get("/health")
@@ -28,33 +30,17 @@ async def automate(req: Req):
     state = {
         "user_input": req.message,
         "intent": None,
-        "email_data": None,
-        "summary": None,
-        "category": None,
-        "slack_sent": False,
-        "calendar_event": None,
-        "search_results": [],
-        "final_response": "",
-        "error": None,
+        "final_response": ""
     }
 
-    try:
-        # LEVEL 4 SAFE EXECUTION (no freeze)
-        result = await asyncio.wait_for(
-            asyncio.to_thread(automation_graph.invoke, state),
-            timeout=8
-        )
+    async def run_graph():
+        automation_graph.invoke(state)
 
-        return {
-            "session_id": session_id,
-            "result": result.get("final_response", ""),
-            "intent": result.get("intent", "general")
-        }
+    # 🔥 LEVEL 5: queue execution (non-blocking)
+    add_job(run_graph)
 
-    except Exception as e:
-        return {
-            "session_id": session_id,
-            "result": "System error",
-            "error": str(e),
-            "intent": "error"
-        }
+    return {
+        "session_id": session_id,
+        "status": "queued",
+        "message": "Processing in background"
+    }
