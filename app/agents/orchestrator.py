@@ -1,5 +1,4 @@
 from app.agents.llm import build_gemini_llm
-from app.tools.tools import get_emails, send_slack, create_calendar_event
 
 llm = build_gemini_llm()
 
@@ -7,36 +6,23 @@ llm = build_gemini_llm()
 def automation_graph(state):
 
     user_input = state["user_input"]
+    memory = state.get("memory", {})
 
-    # 🧠 STEP 1: INTENT DETECTION
-    intent_prompt = f"""
-    Classify this request:
-    - email
-    - slack
-    - calendar
-    - general
+    prompt = f"""
+You are an AI automation agent.
 
-    Input: {user_input}
-    """
+Previous memory:
+{memory}
 
-    intent = str(llm.invoke(intent_prompt)).lower()
+User request:
+{user_input}
 
-    state["intent"] = intent
+Return a helpful response.
+"""
 
-    # 🧠 STEP 2: ROUTING
+    response = llm.invoke(prompt)
 
-    if "email" in intent:
-        result = get_emails()
-
-    elif "slack" in intent:
-        result = send_slack(user_input)
-
-    elif "calendar" in intent:
-        result = create_calendar_event(user_input)
-
-    else:
-        result = llm.invoke(user_input)
-
-    state["final_response"] = str(result)
+    state["final_response"] = str(response)
+    state["intent"] = "processed"
 
     return state

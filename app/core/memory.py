@@ -1,11 +1,9 @@
-import json
+class Memory:
+    def __init__(self):
+        self.store = {}
 
-MEMORY = {}
+    def save(self, session_id, data):
+        self.store[session_id] = data
 
-
-def save_memory(user_id: str, data: dict):
-    MEMORY[user_id] = data
-
-
-def get_memory(user_id: str):
-    return MEMORY.get(user_id, {})
+    def load(self, session_id):
+        return self.store.get(session_id, {})

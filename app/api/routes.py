@@ -1,14 +1,17 @@
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-import os
+from pydantic import BaseModel
+import uuid
 
 from app.agents.orchestrator import automation_graph
+from app.core.memory import Memory
 
 app = FastAPI()
+memory = Memory()
 
-# ✅ FIX: correct base path for Render
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+
+class Req(BaseModel):
+    message: str
+    session_id: str | None = None
 
 
 @app.get("/health")
@@ -17,18 +20,23 @@ def health():
 
 
 @app.post("/automate")
-def automate(req: dict):
+def automate(req: Req):
 
-    result = automation_graph({
-        "user_input": req.get("message", "")
-    })
+    session_id = req.session_id or str(uuid.uuid4())
+
+    prev_memory = memory.load(session_id)
+
+    state = {
+        "user_input": req.message,
+        "memory": prev_memory
+    }
+
+    result = automation_graph(state)
+
+    memory.save(session_id, result)
 
     return {
+        "session_id": session_id,
         "result": result.get("final_response"),
         "intent": result.get("intent")
     }
-
-
-# ✅ ONLY mount if folder exists (CRITICAL FIX)
-if os.path.exists(FRONTEND_DIR):
-    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
