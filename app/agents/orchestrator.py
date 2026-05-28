@@ -63,28 +63,10 @@ def route_by_intent(state: AgentState) -> Literal["email", "calendar", "search",
     return intent_map.get(state["intent"], "general")
 
 def general_node(state: AgentState) -> AgentState:
-    if settings.demo_mode:
-        return {
-            **state,
-            "final_response": (
-                "Demo assistant response: I can route requests to email processing, calendar scheduling, "
-                "Slack notifications, and web research. Try one of the example chips above."
-            ),
-        }
-
-    try:
-        llm = build_gemini_llm(max_tokens=512)
-        response = llm.invoke([HumanMessage(content=state["user_input"])])
-        return {**state, "final_response": response.content}
-    except Exception as e:
-        return {
-            **state,
-            "error": safe_error_message(e),
-            "final_response": (
-                "Demo mode response: the router understood your request, but Gemini is not available. "
-                "Set GOOGLE_API_KEY in the environment and redeploy to enable live AI responses."
-            ),
-        }
+    return {
+        **state,
+        "final_response": "Backend works successfully."
+    }
 
 def build_graph():
     graph = StateGraph(AgentState)
