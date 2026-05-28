@@ -1,12 +1,16 @@
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
+
 langchain==0.2.5
 langgraph==0.1.1
 langchain-google-genai==1.0.6
-google-generativeai==0.7.2
+
+google-generativeai==0.5.2   # ✅ FIX: compatible version
+
 httpx==0.27.0
 pydantic==2.7.4
 pydantic-settings==2.3.1
+
 slack-sdk==3.27.1
 upstash-redis==1.1.0
 python-dotenv==1.0.1
