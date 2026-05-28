@@ -1,5 +1,7 @@
 from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
+from langchain_core.messages import HumanMessage
+from app.agents.llm import build_gemini_llm
 
 class AgentState(TypedDict):
     user_input: str
@@ -11,7 +13,7 @@ def router_node(state: AgentState):
 
     if any(x in text for x in ["email", "gmail"]):
         intent = "email"
-    elif any(x in text for x in ["meeting", "schedule", "calendar"]):
+    elif any(x in text for x in ["meeting", "calendar", "schedule"]):
         intent = "calendar"
     elif any(x in text for x in ["search", "news"]):
         intent = "search"
@@ -25,10 +27,18 @@ def router_node(state: AgentState):
 def route(state: AgentState):
     return state["intent"]
 
+# 🔥 REAL LLM NODE (FIXED)
 def general_node(state: AgentState):
+
+    llm = build_gemini_llm(max_tokens=512)
+
+    response = llm.invoke([
+        HumanMessage(content=state["user_input"])
+    ])
+
     return {
         **state,
-        "final_response": f"AI Automation Hub: {state['user_input']}"
+        "final_response": response.content
     }
 
 from app.agents.email_agent import email_node

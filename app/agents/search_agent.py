@@ -10,15 +10,26 @@ def search_node(state: dict):
             "https://api.tavily.com/search",
             json={
                 "api_key": settings.tavily_api_key,
-                "query": state["user_input"]
-            }
+                "query": state["user_input"],
+                "max_results": 3
+            },
+            timeout=10
         )
 
         data = r.json()
+        results = data.get("results", [])
+
+        if not results:
+            return {
+                **state,
+                "final_response": "No search results found"
+            }
+
+        top = results[0]
 
         return {
             **state,
-            "final_response": data["results"][0]["content"]
+            "final_response": f"{top['title']}\n\n{top['content']}"
         }
 
     except Exception as e:

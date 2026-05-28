@@ -22,7 +22,7 @@ def calendar_node(state: dict):
         event = service.events().insert(
             calendarId="primary",
             body={
-                "summary": "AI Meeting",
+                "summary": "AI Scheduled Meeting",
                 "start": {"dateTime": start.isoformat(), "timeZone": "Asia/Bangkok"},
                 "end": {"dateTime": end.isoformat(), "timeZone": "Asia/Bangkok"}
             }

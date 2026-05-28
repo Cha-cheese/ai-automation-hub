@@ -10,7 +10,7 @@ def email_node(state: dict):
         mail = imaplib.IMAP4_SSL("imap.gmail.com")
         mail.login(settings.gmail_imap_email, settings.gmail_imap_app_password)
 
-        mail.select("inbox")
+        mail.select("INBOX")
         _, data = mail.search(None, "UNSEEN")
 
         emails = []
@@ -19,16 +19,19 @@ def email_node(state: dict):
             _, msg_data = mail.fetch(num, "(RFC822)")
             msg = email.message_from_bytes(msg_data[0][1])
 
-            emails.append({
-                "from": msg["from"],
-                "subject": msg["subject"]
-            })
+            subject = msg.get("subject", "No subject")
+            sender = msg.get("from", "Unknown")
 
-        summary = "\n".join([f"- {e['subject']}" for e in emails])
+            emails.append(f"{subject} — {sender}")
+
+        if not emails:
+            summary = "No new emails"
+        else:
+            summary = "\n".join([f"- {e}" for e in emails])
 
         return {
             **state,
-            "final_response": f"📧 Emails:\n{summary}"
+            "final_response": f"📧 Gmail Summary:\n{summary}"
         }
 
     except Exception as e:

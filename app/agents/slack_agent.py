@@ -10,12 +10,12 @@ def slack_node(state: dict):
 
         client.chat_postMessage(
             channel="#ai",
-            text=f"🤖 AI Update: {state.get('user_input')}"
+            text=f"🤖 {state['user_input']}"
         )
 
         return {
             **state,
-            "final_response": "✅ Slack sent successfully"
+            "final_response": "✅ Slack message sent"
         }
 
     except Exception as e:
