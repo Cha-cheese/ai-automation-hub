@@ -34,7 +34,28 @@ class AutomationResponse(BaseModel):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "timestamp": datetime.now().isoformat()}
+    return {
+        "status": "ok",
+        "version": "2026-05-28-timeout-v2",
+        "timestamp": datetime.now().isoformat(),
+    }
+
+@app.get("/debug/config")
+async def debug_config():
+    if settings.app_env == "production":
+        return {
+            "app_env": settings.app_env,
+            "gemini_model": settings.gemini_model,
+            "has_google_api_key": bool(settings.google_api_key),
+            "has_tavily_api_key": bool(settings.tavily_api_key),
+            "has_slack_bot_token": bool(settings.slack_bot_token),
+            "has_google_service_account_json": settings.google_service_account_json not in ("", "{}"),
+            "has_upstash_redis": bool(settings.upstash_redis_rest_url and settings.upstash_redis_rest_token),
+            "request_timeout_seconds": settings.request_timeout_seconds,
+            "llm_timeout_seconds": settings.llm_timeout_seconds,
+            "tavily_timeout_seconds": settings.tavily_timeout_seconds,
+        }
+    return settings.model_dump(exclude={"google_api_key", "tavily_api_key", "slack_bot_token", "upstash_redis_rest_token"})
 
 @app.post("/automate", response_model=AutomationResponse)
 async def automate(req: AutomationRequest):

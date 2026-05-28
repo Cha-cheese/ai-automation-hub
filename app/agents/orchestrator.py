@@ -33,6 +33,10 @@ def heuristic_intent(user_input: str) -> str:
     return "general_query"
 
 def router_node(state: AgentState) -> AgentState:
+    heuristic = heuristic_intent(state["user_input"])
+    if heuristic != "general_query":
+        return {**state, "intent": heuristic}
+
     try:
         llm = build_gemini_llm(max_tokens=256)
         response = llm.invoke([
@@ -42,7 +46,7 @@ def router_node(state: AgentState) -> AgentState:
         parsed = json.loads(clean_json_response(response.content))
         return {**state, "intent": parsed.get("intent", "general_query")}
     except Exception as e:
-        return {**state, "intent": heuristic_intent(state["user_input"]), "error": str(e)}
+        return {**state, "intent": heuristic, "error": str(e)}
 
 def route_by_intent(state: AgentState) -> Literal["email", "calendar", "search", "general"]:
     intent_map = {
