@@ -4,17 +4,10 @@ llm = build_gemini_llm()
 
 
 def automation_graph(state):
-
     try:
-        user_input = state.get("user_input", "")
-
         prompt = f"""
-You are an AI assistant.
-
 User request:
-{user_input}
-
-Return simple response.
+{state.get("user_input", "")}
 """
 
         response = llm.invoke(prompt)
@@ -27,6 +20,5 @@ Return simple response.
     except Exception as e:
         return {
             "final_response": "AI error",
-            "error": str(e),
             "intent": "failed"
         }

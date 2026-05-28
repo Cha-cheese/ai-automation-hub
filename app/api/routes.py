@@ -1,11 +1,25 @@
 from fastapi import FastAPI, Header
-from app.workers.tasks import run_ai
-from app.core.auth import verify_token
-import uuid
 from pydantic import BaseModel
-from app.core.auth import login as auth_login
+from app.agents.orchestrator import automation_graph
+from app.core.auth import login as auth_login, verify_token
 
 app = FastAPI()
+
+
+# ---------- MODELS ----------
+class LoginReq(BaseModel):
+    username: str
+    password: str
+
+
+class AutomateReq(BaseModel):
+    message: str
+
+
+# ---------- ROUTES ----------
+@app.get("/")
+def root():
+    return {"status": "AI Automation Hub running"}
 
 
 @app.get("/health")
@@ -13,37 +27,29 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/automate")
-def automate(req, authorization: str = None):
-
-    try:
-        result = automation_graph({
-            "user_input": req.message
-        })
-
-        return {
-            "session_id": "ok",
-            "result": result.get("final_response", str(result)),
-            "intent": result.get("intent", "unknown")
-        }
-
-    except Exception as e:
-        return {
-            "error": "internal_error",
-            "detail": str(e)
-        }
-
-
 @app.post("/login")
 def login_api(req: LoginReq):
-
     token = auth_login(req.username, req.password)
 
     if not token:
         return {"error": "invalid credentials"}
 
+    return {"token": token}
+
+
+@app.post("/automate")
+def automate(req: AutomateReq, authorization: str = Header(None)):
+
+    user = verify_token(authorization)
+
+    if not user:
+        return {"error": "unauthorized"}
+
+    result = automation_graph({
+        "user_input": req.message
+    })
+
     return {
-        "token": token
+        "result": result.get("final_response"),
+        "intent": result.get("intent")
     }
-
-
