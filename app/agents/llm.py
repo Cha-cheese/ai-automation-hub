@@ -1,5 +1,6 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from app.core.config import get_settings
+import json
 
 settings = get_settings()
 
@@ -14,3 +15,23 @@ def build_gemini_llm(max_tokens=512):
 
 def clean_json_response(text: str):
     return text.strip().replace("```json", "").replace("```", "")
+
+
+def safe_json_load(text: str):
+    """
+    Safe JSON parser for LLM outputs
+    """
+    try:
+        return json.loads(text)
+    except Exception:
+        # fallback cleanup
+        cleaned = (
+            text.strip()
+            .replace("```json", "")
+            .replace("```", "")
+            .strip()
+        )
+        try:
+            return json.loads(cleaned)
+        except Exception:
+            return {"raw": text}
