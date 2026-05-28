@@ -1,7 +1,7 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
 import uuid
 import asyncio
+from fastapi import FastAPI
+from pydantic import BaseModel
 
 from app.agents.orchestrator import automation_graph
 
@@ -13,7 +13,7 @@ class Req(BaseModel):
 
 @app.get("/")
 def root():
-    return {"status": "AI Automation Hub running"}
+    return {"status": "AI Automation Hub running", "level": 4}
 
 
 @app.get("/health")
@@ -27,18 +27,19 @@ async def automate(req: Req):
 
     state = {
         "user_input": req.message,
-        "intent": "",
-        "email_data": {},
-        "summary": "",
-        "category": "",
+        "intent": None,
+        "email_data": None,
+        "summary": None,
+        "category": None,
         "slack_sent": False,
-        "calendar_event": {},
+        "calendar_event": None,
         "search_results": [],
         "final_response": "",
-        "error": "",
+        "error": None,
     }
 
     try:
+        # LEVEL 4 SAFE EXECUTION (no freeze)
         result = await asyncio.wait_for(
             asyncio.to_thread(automation_graph.invoke, state),
             timeout=8
@@ -53,6 +54,7 @@ async def automate(req: Req):
     except Exception as e:
         return {
             "session_id": session_id,
-            "result": f"error: {str(e)}",
+            "result": "System error",
+            "error": str(e),
             "intent": "error"
         }

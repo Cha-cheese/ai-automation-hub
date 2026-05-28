@@ -1,6 +1,7 @@
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, Literal
 
+
 from app.agents.email_agent import email_node
 from app.agents.calendar_agent import calendar_node
 from app.agents.search_agent import search_node
@@ -10,28 +11,35 @@ from app.agents.summarizer_agent import summarizer_node
 
 class AgentState(TypedDict):
     user_input: str
-    intent: str
-    email_data: dict
-    summary: str
-    category: str
+    intent: str | None
+    email_data: dict | None
+    summary: str | None
+    category: str | None
     slack_sent: bool
-    calendar_event: dict
+    calendar_event: dict | None
     search_results: list
     final_response: str
-    error: str
+    error: str | None
 
 
-def route(state: AgentState) -> Literal["email", "calendar", "search", "general"]:
+# 🔥 LEVEL 4 INTENT CLASSIFIER (FIXED)
+def classify_intent(state: AgentState) -> str:
     text = state["user_input"].lower()
 
-    if "email" in text:
+    if any(k in text for k in ["email", "gmail", "inbox"]):
         return "email"
-    if "meeting" in text or "schedule" in text:
+
+    if any(k in text for k in ["meeting", "schedule", "calendar"]):
         return "calendar"
-    if "search" in text or "news" in text:
+
+    if any(k in text for k in ["search", "news", "google"]):
         return "search"
 
     return "general"
+
+
+def route(state: AgentState) -> Literal["email", "calendar", "search", "general"]:
+    return classify_intent(state)
 
 
 def build_graph():

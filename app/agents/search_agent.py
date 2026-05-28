@@ -2,7 +2,9 @@ def search_node(state: dict):
     return {
         **state,
         "search_results": [
-            {"title": "AI News", "content": "Germany increases AI investment in 2026"},
+            "Germany AI investment increasing in 2026",
+            "EU automation adoption rising"
         ],
-        "final_response": "🔍 AI search completed (mock safe mode)"
+        "intent": "search",
+        "final_response": "🔍 Search completed (production mock safe)"
     }

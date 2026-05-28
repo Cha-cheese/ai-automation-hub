@@ -1,13 +1,12 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 def calendar_node(state: dict):
-    now = datetime.now()
-
     return {
         **state,
         "calendar_event": {
             "title": "Meeting",
-            "start": now.isoformat()
+            "time": datetime.now().isoformat()
         },
-        "final_response": f"📅 Meeting scheduled (mock) at {now}"
+        "intent": "calendar",
+        "final_response": "📅 Calendar event created (Level 4 mock)"
     }
