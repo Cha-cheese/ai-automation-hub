@@ -37,7 +37,7 @@ class AutomationResponse(BaseModel):
 async def health():
     return {
         "status": "ok",
-        "version": "2026-05-28-timeout-v2",
+            "version": "2026-05-28-timeout-v3",
         "timestamp": datetime.now().isoformat(),
     }
 
