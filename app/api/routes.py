@@ -1,52 +1,57 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from app.agents.orchestrator import automation_graph
-import uuid
 import asyncio
-from datetime import datetime
+import uuid
+from app.core.config import get_settings
+
+settings = get_settings()
 
 app = FastAPI()
 
-class Req(BaseModel):
-    message: str
-    session_id: str = None
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+class Request(BaseModel):
+    message: str
+    session_id: str | None = None
 
 @app.get("/")
-def home():
+def root():
     return {"status": "AI Automation Hub running"}
 
-
 @app.post("/automate")
-async def automate(req: Req):
-    session = req.session_id or str(uuid.uuid4())
+async def automate(req: Request):
 
-    state = {
+    session_id = req.session_id or str(uuid.uuid4())
+
+    initial_state = {
         "user_input": req.message,
-        "intent": "general",
-        "email_data": {},
-        "summary": "",
-        "category": "",
-        "slack_sent": False,
-        "calendar_event": {},
-        "search_results": [],
+        "intent": "",
         "final_response": "",
-        "error": ""
+        "error": "",
     }
 
     try:
-        # 🔥 HARD FIX TIMEOUT
-        result = await asyncio.to_thread(automation_graph.invoke, state)
+        result = await asyncio.wait_for(
+            asyncio.to_thread(automation_graph.invoke, initial_state),
+            timeout=settings.request_timeout_seconds
+        )
 
         return {
-            "session_id": session,
-            "result": result.get("final_response", "done"),
-            "intent": result.get("intent", "general")
+            "session_id": session_id,
+            "result": result.get("final_response", "OK"),
+            "intent": result.get("intent", "general"),
         }
 
-    except Exception as e:
+    except asyncio.TimeoutError:
         return {
-            "session_id": session,
-            "result": f"error: {str(e)}",
-            "intent": "error"
+            "session_id": session_id,
+            "result": "System timeout (agent too slow)",
+            "intent": "timeout"
         }
