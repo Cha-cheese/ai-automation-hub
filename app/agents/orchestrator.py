@@ -1,5 +1,5 @@
 from langgraph.graph import StateGraph, END
-from app.core.llm import llm_client
+from app.agents.llm import build_gemini_llm
 
 
 def classify(state):
