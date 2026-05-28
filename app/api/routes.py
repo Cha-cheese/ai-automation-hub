@@ -40,3 +40,12 @@ def automate(req: Req):
         "result": result.get("final_response"),
         "intent": result.get("intent")
     }
+
+@app.get("/")
+def root():
+    return {
+        "status": "AI Automation Hub running",
+        "docs": "/docs",
+        "health": "/health",
+        "endpoint": "/automate"
+    }
