@@ -1,21 +1,9 @@
 from fastapi import FastAPI, Header
-from pydantic import BaseModel
+from app.workers.tasks import run_ai
+from app.core.auth import verify_token
 import uuid
 
-from app.agents.orchestrator import automation_graph
-from app.core.auth import verify
-from app.core.db import db
-
 app = FastAPI()
-
-
-class Req(BaseModel):
-    message: str
-
-
-@app.get("/")
-def home():
-    return {"status": "AI Automation Hub running"}
 
 
 @app.get("/health")
@@ -24,39 +12,16 @@ def health():
 
 
 @app.post("/automate")
-def automate(req: Req, authorization: str = Header(None)):
+def automate(req: dict, authorization: str = Header(None)):
 
-    user = verify(authorization)
+    user = verify_token(authorization)
 
     if not user:
         return {"error": "unauthorized"}
 
-    session_id = str(uuid.uuid4())
-
-    memory = db.get(user, "memory")
-
-    result = automation_graph({
-        "user_input": req.message,
-        "memory": memory
-    })
-
-    db.save(user, "memory", result)
+    task = run_ai.delay(req["message"], user["user_id"])
 
     return {
-        "session_id": session_id,
-        "result": result.get("final_response"),
-        "intent": result.get("intent")
+        "task_id": task.id,
+        "status": "processing"
     }
-
-
-from app.core.auth import login
-
-
-@app.post("/login")
-def login_api(data: dict):
-    token = login(data["username"], data["password"])
-
-    if not token:
-        return {"error": "invalid credentials"}
-
-    return {"token": token}

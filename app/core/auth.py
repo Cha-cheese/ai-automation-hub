@@ -1,19 +1,20 @@
-import uuid
+import jwt
+import datetime
+import os
 
-USERS = {
-    "admin": "admin123"
-}
-
-TOKENS = {}
+SECRET = os.getenv("JWT_SECRET", "secret")
 
 
-def login(username, password):
-    if USERS.get(username) == password:
-        token = str(uuid.uuid4())
-        TOKENS[token] = username
-        return token
-    return None
+def create_token(user_id):
+    payload = {
+        "user_id": user_id,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    }
+    return jwt.encode(payload, SECRET, algorithm="HS256")
 
 
-def verify(token):
-    return TOKENS.get(token)
+def verify_token(token):
+    try:
+        return jwt.decode(token, SECRET, algorithms=["HS256"])
+    except:
+        return None

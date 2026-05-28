@@ -1,14 +1,21 @@
-class DB:
-    def __init__(self):
-        self.data = {}
+from sqlalchemy import create_engine, Column, String, Text
+from sqlalchemy.orm import declarative_base, sessionmaker
+import os
 
-    def save(self, user, key, value):
-        if user not in self.data:
-            self.data[user] = {}
-        self.data[user][key] = value
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./dev.db")
 
-    def get(self, user, key):
-        return self.data.get(user, {}).get(key)
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(bind=engine)
+
+Base = declarative_base()
 
 
-db = DB()
+class UserMemory(Base):
+    __tablename__ = "memory"
+
+    user_id = Column(String, primary_key=True)
+    data = Column(Text)
+
+
+def init_db():
+    Base.metadata.create_all(bind=engine)

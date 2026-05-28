@@ -1,19 +1,8 @@
-import asyncio
-from collections import deque
+from celery import Celery
+import os
 
-JOB_QUEUE = deque()
-
-
-async def worker():
-    while True:
-        if JOB_QUEUE:
-            job = JOB_QUEUE.popleft()
-            try:
-                await job()
-            except Exception:
-                pass
-        await asyncio.sleep(0.1)
-
-
-def add_job(job):
-    JOB_QUEUE.append(job)
+celery = Celery(
+    "ai_hub",
+    broker=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+    backend=os.getenv("REDIS_URL", "redis://localhost:6379/1")
+)
