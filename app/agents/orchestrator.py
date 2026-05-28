@@ -1,74 +1,71 @@
 from langgraph.graph import StateGraph, END
 from app.agents.llm import build_gemini_llm
 
-
 llm = build_gemini_llm()
 
 
-def classify(state):
-    text = state["user_input"].lower()
+# 🧠 PLANNER AGENT
+def planner(state):
+    prompt = f"""
+    You are a planner agent.
+    Break this task into steps:
 
-    if "email" in text:
-        return "email"
-    if "meeting" in text:
-        return "calendar"
-    if "search" in text:
-        return "search"
+    {state['user_input']}
+    """
 
-    return "general"
+    plan = llm.invoke(prompt)
 
-
-def email_node(state):
-    res = llm.invoke(f"Summarize email task: {state['user_input']}")
-    return {**state, "final_response": str(res), "intent": "email"}
-
-
-def calendar_node(state):
     return {
         **state,
-        "final_response": "📅 Calendar event created (production-ready stub)",
-        "intent": "calendar"
+        "plan": str(plan),
+        "intent": "planned"
     }
 
 
-def search_node(state):
+# ⚙️ EXECUTOR AGENT
+def executor(state):
+    prompt = f"""
+    Execute this plan:
+    {state.get('plan')}
+    """
+
+    result = llm.invoke(prompt)
+
     return {
         **state,
-        "final_response": "🔍 Search completed",
-        "intent": "search"
+        "result": str(result),
+        "intent": "executed"
     }
 
 
-def general_node(state):
-    res = llm.invoke(state["user_input"])
-    return {**state, "final_response": str(res), "intent": "general"}
+# 🧪 REVIEW AGENT
+def reviewer(state):
+    prompt = f"""
+    Review this output and improve if needed:
+    {state.get('result')}
+    """
 
+    review = llm.invoke(prompt)
 
-def route(state):
-    return classify(state)
+    return {
+        **state,
+        "final_response": str(review),
+        "intent": "completed"
+    }
 
 
 def build_graph():
     graph = StateGraph(dict)
 
-    graph.add_node("email", email_node)
-    graph.add_node("calendar", calendar_node)
-    graph.add_node("search", search_node)
-    graph.add_node("general", general_node)
+    graph.add_node("planner", planner)
+    graph.add_node("executor", executor)
+    graph.add_node("reviewer", reviewer)
 
-    graph.set_entry_point("general")
+    graph.set_entry_point("planner")
 
-    graph.add_conditional_edges("general", route, {
-        "email": "email",
-        "calendar": "calendar",
-        "search": "search",
-        "general": "general"
-    })
-
-    graph.add_edge("email", END)
-    graph.add_edge("calendar", END)
-    graph.add_edge("search", END)
-    graph.add_edge("general", END)
+    graph.add_edge("planner", "executor")
+    graph.add_edge("executor", "reviewer")
+    graph.add_edge("reviewer", END)
 
     return graph.compile()
 
