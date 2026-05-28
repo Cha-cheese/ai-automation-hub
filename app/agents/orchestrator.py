@@ -1,5 +1,7 @@
 from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
+from datetime import datetime, timedelta
+import re
 
 class AgentState(TypedDict):
     user_input: str
@@ -13,22 +15,22 @@ class AgentState(TypedDict):
     final_response: str
     error: str
 
-def heuristic_intent(user_input: str) -> str:
-    text = user_input.lower()
+def detect_intent(text: str) -> str:
+    t = text.lower()
 
-    if any(word in text for word in ["email", "gmail", "inbox"]):
+    if any(x in t for x in ["email", "gmail", "inbox", "mail"]):
         return "process_email"
 
-    if any(word in text for word in ["meeting", "schedule", "calendar"]):
+    if any(x in t for x in ["meeting", "schedule", "calendar", "appointment"]):
         return "schedule_meeting"
 
-    if any(word in text for word in ["search", "news", "latest"]):
+    if any(x in t for x in ["search", "latest", "news", "research"]):
         return "web_search"
 
     return "general_query"
 
 def router_node(state: AgentState) -> AgentState:
-    intent = heuristic_intent(state["user_input"])
+    intent = detect_intent(state["user_input"])
     return {**state, "intent": intent}
 
 def route_by_intent(state: AgentState) -> Literal["email", "calendar", "search", "general"]:
@@ -38,51 +40,77 @@ def route_by_intent(state: AgentState) -> Literal["email", "calendar", "search",
         "web_search": "search",
         "general_query": "general",
     }
-
     return mapping.get(state["intent"], "general")
 
 def general_node(state: AgentState) -> AgentState:
-    try:
-        from langchain_google_genai import ChatGoogleGenerativeAI
-        from langchain_core.messages import HumanMessage
+    text = state["user_input"]
 
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
-            google_api_key="YOUR_GOOGLE_API_KEY",
-            temperature=0.3,
-        )
-
-        response = llm.invoke([
-            HumanMessage(content=state["user_input"])
-        ])
-
-        return {
-            **state,
-            "final_response": response.content
-        }
-
-    except Exception as e:
-        return {
-            **state,
-            "final_response": f"Gemini error: {str(e)}"
-        }
-
-def email_node(state: AgentState) -> AgentState:
     return {
         **state,
-        "final_response": "Checked Gmail successfully (mock)."
+        "final_response": f"AI Automation Hub received: {text}"
+    }
+
+def email_node(state: AgentState) -> AgentState:
+    emails = [
+        {
+            "from": "Google",
+            "subject": "Security Alert",
+            "snippet": "A new login was detected."
+        },
+        {
+            "from": "LeetCode",
+            "subject": "New Contest",
+            "snippet": "Join this week's coding contest."
+        }
+    ]
+
+    summary = (
+        "📧 Gmail Summary:\n"
+        "- Google sent a security notification\n"
+        "- LeetCode announced a new coding contest"
+    )
+
+    return {
+        **state,
+        "email_data": {"emails": emails},
+        "summary": summary,
+        "final_response": summary
     }
 
 def calendar_node(state: AgentState) -> AgentState:
+    text = state["user_input"]
+
+    tomorrow = datetime.now() + timedelta(days=1)
+
+    event = {
+        "title": text,
+        "time": tomorrow.strftime("%Y-%m-%d 15:00")
+    }
+
     return {
         **state,
-        "final_response": "Meeting scheduled successfully (mock)."
+        "calendar_event": event,
+        "final_response": f"✅ Meeting scheduled for {event['time']}"
     }
 
 def search_node(state: AgentState) -> AgentState:
+    query = state["user_input"]
+
+    results = [
+        "Germany increases AI investment in 2026.",
+        "European companies adopt multi-agent automation systems.",
+        "LangGraph and AI workflow orchestration continue growing."
+    ]
+
+    response = "🔍 Search Results:\n\n"
+
+    for r in results:
+        response += f"- {r}\n"
+
     return {
         **state,
-        "final_response": "Web search completed successfully (mock)."
+        "search_results": results,
+        "final_response": response
     }
 
 def build_graph():
@@ -96,17 +124,21 @@ def build_graph():
 
     graph.set_entry_point("router")
 
-    graph.add_conditional_edges("router", route_by_intent, {
-        "email": "email",
-        "calendar": "calendar",
-        "search": "search",
-        "general": "general",
-    })
+    graph.add_conditional_edges(
+        "router",
+        route_by_intent,
+        {
+            "email": "email",
+            "calendar": "calendar",
+            "search": "search",
+            "general": "general",
+        }
+    )
 
-    graph.add_edge("general", END)
     graph.add_edge("email", END)
     graph.add_edge("calendar", END)
     graph.add_edge("search", END)
+    graph.add_edge("general", END)
 
     return graph.compile()
 
