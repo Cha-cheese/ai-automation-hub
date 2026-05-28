@@ -6,7 +6,7 @@ TOKENS = {}
 def login(username, password):
     if username == "admin" and password == "admin123":
         token = str(uuid.uuid4())
-        TOKENS[token] = "admin"
+        TOKENS[token] = username
         return token
     return None
 
