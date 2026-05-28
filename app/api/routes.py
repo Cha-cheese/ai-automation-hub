@@ -2,6 +2,7 @@ from fastapi import FastAPI, Header
 from app.workers.tasks import run_ai
 from app.core.auth import verify_token
 import uuid
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -25,3 +26,18 @@ def automate(req: dict, authorization: str = Header(None)):
         "task_id": task.id,
         "status": "processing"
     }
+
+class LoginReq(BaseModel):
+    username: str
+    password: str
+
+
+@app.post("/login")
+def login(req: LoginReq):
+
+    if req.username == "admin" and req.password == "admin123":
+        return {
+            "token": "dev-token-123"
+        }
+
+    return {"error": "invalid credentials"}
