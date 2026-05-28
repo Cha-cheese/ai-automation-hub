@@ -1,18 +1,35 @@
 import asyncio
+import uuid
 from fastapi import FastAPI
 from pydantic import BaseModel
+
 from app.agents.orchestrator import automation_graph
 from app.core.config import get_settings
-import uuid
 
 settings = get_settings()
 
-app = FastAPI()
+app = FastAPI(title="AI Automation Hub")
 
+# -------------------------
+# HEALTH CHECK (FIX 404)
+# -------------------------
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+@app.get("/")
+def root():
+    return {"status": "AI Automation Hub running"}
+
+# -------------------------
+# REQUEST MODEL
+# -------------------------
 class Req(BaseModel):
     message: str
 
-
+# -------------------------
+# MAIN ORCHESTRATION
+# -------------------------
 @app.post("/automate")
 async def automate(req: Req):
     session_id = str(uuid.uuid4())
@@ -31,16 +48,16 @@ async def automate(req: Req):
     }
 
     try:
-        # FIX: hard timeout reduced
+        # 🔥 HARD GUARD (prevent Render freeze)
         result = await asyncio.wait_for(
             asyncio.to_thread(automation_graph.invoke, initial_state),
-            timeout=20,  # 🔥 LEVEL 4 FIX
+            timeout=15,   # LEVEL 4 SAFE LIMIT
         )
 
         return {
             "session_id": session_id,
-            "result": result.get("final_response"),
-            "intent": result.get("intent"),
+            "result": result.get("final_response", "No response"),
+            "intent": result.get("intent", "unknown"),
         }
 
     except asyncio.TimeoutError:
@@ -48,4 +65,11 @@ async def automate(req: Req):
             "session_id": session_id,
             "result": "System timeout (agent too slow)",
             "intent": "timeout"
+        }
+
+    except Exception as e:
+        return {
+            "session_id": session_id,
+            "result": f"System error: {str(e)}",
+            "intent": "error"
         }
