@@ -1,28 +1,24 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from app.core.config import get_settings
-import re
+import json, re
 
 settings = get_settings()
 
-# DEBUG: ใส่ Gemini API key ตรงนี้ชั่วคราว
-# เอา key จาก https://aistudio.google.com/app/apikey
-DIRECT_GEMINI_KEY = "PASTE_YOUR_REAL_GEMINI_KEY_HERE"
-
 def build_gemini_llm(max_tokens=512):
     return ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash",
-        google_api_key=DIRECT_GEMINI_KEY,
-        temperature=0.3,
+        model=settings.gemini_model,
+        google_api_key=settings.google_api_key,
+        temperature=0.2,
         max_output_tokens=max_tokens,
-        timeout=settings.llm_timeout_seconds,
     )
 
-def clean_json_response(text: str) -> str:
-    text = text.strip()
+def clean_json_response(text: str):
+    text = text.replace("```json", "").replace("```", "").strip()
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    return match.group() if match else text
 
-    # ลบ markdown block
-    text = re.sub(r"^```json", "", text)
-    text = re.sub(r"^```", "", text)
-    text = re.sub(r"```$", "", text)
-
-    return text.strip()
+def safe_json_load(text: str):
+    try:
+        return json.loads(text)
+    except:
+        return {"intent": "general_query"}
