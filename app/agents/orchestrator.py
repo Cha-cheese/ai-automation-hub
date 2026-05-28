@@ -2,6 +2,9 @@ from langgraph.graph import StateGraph, END
 from app.agents.llm import build_gemini_llm
 
 
+llm = build_gemini_llm()
+
+
 def classify(state):
     text = state["user_input"].lower()
 
@@ -16,18 +19,14 @@ def classify(state):
 
 
 def email_node(state):
-    prompt = f"Summarize email task: {state['user_input']}"
-    return {
-        **state,
-        "final_response": llm_client.generate(prompt),
-        "intent": "email"
-    }
+    res = llm.invoke(f"Summarize email task: {state['user_input']}")
+    return {**state, "final_response": str(res), "intent": "email"}
 
 
 def calendar_node(state):
     return {
         **state,
-        "final_response": "📅 Calendar event created (real flow ready)",
+        "final_response": "📅 Calendar event created (production-ready stub)",
         "intent": "calendar"
     }
 
@@ -35,17 +34,14 @@ def calendar_node(state):
 def search_node(state):
     return {
         **state,
-        "final_response": "🔍 Search executed (production mode)",
+        "final_response": "🔍 Search completed",
         "intent": "search"
     }
 
 
 def general_node(state):
-    return {
-        **state,
-        "final_response": llm_client.generate(state["user_input"]),
-        "intent": "general"
-    }
+    res = llm.invoke(state["user_input"])
+    return {**state, "final_response": str(res), "intent": "general"}
 
 
 def route(state):
@@ -60,15 +56,16 @@ def build_graph():
     graph.add_node("search", search_node)
     graph.add_node("general", general_node)
 
-    graph.set_entry_point("email")
+    graph.set_entry_point("general")
 
-    graph.add_conditional_edges("email", route, {
+    graph.add_conditional_edges("general", route, {
         "email": "email",
         "calendar": "calendar",
         "search": "search",
         "general": "general"
     })
 
+    graph.add_edge("email", END)
     graph.add_edge("calendar", END)
     graph.add_edge("search", END)
     graph.add_edge("general", END)

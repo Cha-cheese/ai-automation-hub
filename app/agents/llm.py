@@ -1,7 +1,8 @@
 import os
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-def build_gemini_llm(max_tokens=256):
+
+def build_gemini_llm():
     api_key = os.getenv("GOOGLE_API_KEY")
 
     if not api_key:
@@ -10,13 +11,5 @@ def build_gemini_llm(max_tokens=256):
     return ChatGoogleGenerativeAI(
         model="gemini-1.5-flash",
         google_api_key=api_key,
-        temperature=0.3,
-        max_output_tokens=max_tokens,
+        temperature=0.3
     )
-
-
-def safe_llm_call(llm, messages):
-    try:
-        return llm.invoke(messages)
-    except Exception as e:
-        return f"LLM error: {str(e)}"
