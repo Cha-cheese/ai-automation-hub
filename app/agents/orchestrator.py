@@ -1,6 +1,5 @@
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, Literal
-from app.agents.llm import build_gemini_llm
 
 class AgentState(TypedDict):
     user_input: str
@@ -15,55 +14,40 @@ class AgentState(TypedDict):
     error: str
 
 
-# 🔥 FAST ROUTER (NO AI)
-def router(state: AgentState):
-    text = state["user_input"].lower()
-
-    if any(k in text for k in ["email", "gmail"]):
-        intent = "email"
-    elif any(k in text for k in ["meeting", "calendar", "schedule"]):
-        intent = "calendar"
-    elif any(k in text for k in ["search", "news"]):
-        intent = "search"
-    else:
-        intent = "general"
-
-    return {**state, "intent": intent}
-
-
-def route(state: AgentState) -> Literal["email", "calendar", "search", "general"]:
-    return state["intent"]
+def route(state: AgentState) -> Literal["email", "calendar", "search", "slack", "general"]:
+    intent = state.get("intent", "general")
+    return intent if intent in ["email", "calendar", "search"] else "general"
 
 
 def general_node(state: AgentState):
-    return {
-        **state,
-        "final_response": f"AI Hub: {state['user_input']}"
-    }
+    return {**state, "final_response": f"AI Hub: {state['user_input']}"}
 
 
 def build_graph():
     g = StateGraph(AgentState)
 
-    g.add_node("router", router)
-    g.add_node("email", lambda s: {**s, "final_response": "Email processed (async safe mode)"})
-    g.add_node("calendar", lambda s: {**s, "final_response": "Calendar event created (mock safe mode)"})
-    g.add_node("search", lambda s: {**s, "final_response": "Search completed (fast mode)"})
+    from app.agents.email_agent import email_node
+    from app.agents.calendar_agent import calendar_node
+    from app.agents.search_agent import search_node
+    from app.agents.slack_agent import slack_node
+
+    g.add_node("email", email_node)
+    g.add_node("calendar", calendar_node)
+    g.add_node("search", search_node)
     g.add_node("general", general_node)
 
-    g.set_entry_point("router")
+    g.set_entry_point("general")
 
-    g.add_conditional_edges("router", route, {
+    g.add_conditional_edges("general", route, {
         "email": "email",
         "calendar": "calendar",
         "search": "search",
-        "general": "general",
+        "general": END
     })
 
     g.add_edge("email", END)
     g.add_edge("calendar", END)
     g.add_edge("search", END)
-    g.add_edge("general", END)
 
     return g.compile()
 

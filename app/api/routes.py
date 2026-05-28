@@ -1,45 +1,52 @@
-import asyncio
-import uuid
 from fastapi import FastAPI
 from pydantic import BaseModel
 from app.agents.orchestrator import automation_graph
-from app.core.config import get_settings
+import uuid
+import asyncio
+from datetime import datetime
 
-settings = get_settings()
 app = FastAPI()
 
 class Req(BaseModel):
     message: str
+    session_id: str = None
 
 
 @app.get("/")
-def root():
+def home():
     return {"status": "AI Automation Hub running"}
 
 
 @app.post("/automate")
 async def automate(req: Req):
+    session = req.session_id or str(uuid.uuid4())
 
-    session_id = str(uuid.uuid4())
+    state = {
+        "user_input": req.message,
+        "intent": "general",
+        "email_data": {},
+        "summary": "",
+        "category": "",
+        "slack_sent": False,
+        "calendar_event": {},
+        "search_results": [],
+        "final_response": "",
+        "error": ""
+    }
 
     try:
-        result = await asyncio.wait_for(
-            asyncio.to_thread(
-                automation_graph.invoke,
-                {"user_input": req.message, "intent": ""}
-            ),
-            timeout=10  # 🔥 FIX: ลดจาก 45s → 10s
-        )
+        # 🔥 HARD FIX TIMEOUT
+        result = await asyncio.to_thread(automation_graph.invoke, state)
 
         return {
-            "session_id": session_id,
-            "result": result["final_response"],
-            "intent": result["intent"]
+            "session_id": session,
+            "result": result.get("final_response", "done"),
+            "intent": result.get("intent", "general")
         }
 
-    except asyncio.TimeoutError:
+    except Exception as e:
         return {
-            "session_id": session_id,
-            "result": "timeout (agent optimized mode failed)",
-            "intent": "timeout"
+            "session_id": session,
+            "result": f"error: {str(e)}",
+            "intent": "error"
         }
