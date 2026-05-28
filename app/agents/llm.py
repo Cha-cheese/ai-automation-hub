@@ -13,3 +13,9 @@ def build_gemini_llm(max_tokens=256):
         temperature=0.3,
         max_output_tokens=max_tokens,
     )
+
+def safe_llm_call(llm, messages):
+    try:
+        return llm.invoke(messages)
+    except Exception:
+        return "LLM unavailable"

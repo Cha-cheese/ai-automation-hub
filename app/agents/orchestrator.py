@@ -1,12 +1,12 @@
-from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
-from langchain_core.messages import HumanMessage, SystemMessage
-from app.agents.llm import build_gemini_llm
-from app.core.config import get_settings
-from app.core.errors import safe_error_message
-import json
+from typing import TypedDict, Literal
 
-settings = get_settings()
+from app.agents.email_agent import email_node
+from app.agents.calendar_agent import calendar_node
+from app.agents.search_agent import search_node
+from app.agents.slack_agent import slack_node
+from app.agents.summarizer_agent import summarizer_node
+
 
 class AgentState(TypedDict):
     user_input: str
@@ -21,74 +21,43 @@ class AgentState(TypedDict):
     error: str
 
 
-def router_node(state: AgentState) -> AgentState:
+def route(state: AgentState) -> Literal["email", "calendar", "search", "general"]:
     text = state["user_input"].lower()
 
-    if any(x in text for x in ["email", "mail"]):
-        intent = "process_email"
-    elif any(x in text for x in ["meeting", "schedule", "calendar", "นัด"]):
-        intent = "schedule_meeting"
-    elif any(x in text for x in ["search", "news", "ค้นหา"]):
-        intent = "web_search"
-    else:
-        intent = "general_query"
+    if "email" in text:
+        return "email"
+    if "meeting" in text or "schedule" in text:
+        return "calendar"
+    if "search" in text or "news" in text:
+        return "search"
 
-    return {**state, "intent": intent}
-
-
-def route_by_intent(state: AgentState) -> Literal["email", "calendar", "search", "general"]:
-    return {
-        "process_email": "email",
-        "schedule_meeting": "calendar",
-        "web_search": "search",
-    }.get(state["intent"], "general")
-
-
-def general_node(state: AgentState) -> AgentState:
-    try:
-        llm = build_gemini_llm(max_tokens=200)
-
-        response = llm.invoke([
-            HumanMessage(content=state["user_input"])
-        ])
-
-        return {**state, "final_response": response.content}
-
-    except Exception as e:
-        return {
-            **state,
-            "final_response": f"AI Hub: {state['user_input']}",
-            "error": safe_error_message(e)
-        }
+    return "general"
 
 
 def build_graph():
     graph = StateGraph(AgentState)
 
-    from app.agents.email_agent import email_node
-    from app.agents.calendar_agent import calendar_node
-    from app.agents.search_agent import search_node
-
-    graph.add_node("router", router_node)
     graph.add_node("email", email_node)
     graph.add_node("calendar", calendar_node)
     graph.add_node("search", search_node)
-    graph.add_node("general", general_node)
+    graph.add_node("slack", slack_node)
+    graph.add_node("summarizer", summarizer_node)
 
-    graph.set_entry_point("router")
+    graph.set_entry_point("email")
 
-    graph.add_conditional_edges("router", route_by_intent, {
+    graph.add_conditional_edges("email", route, {
         "email": "email",
         "calendar": "calendar",
         "search": "search",
-        "general": "general",
+        "general": "summarizer"
     })
 
-    graph.add_edge("email", END)
-    graph.add_edge("calendar", END)
-    graph.add_edge("search", END)
-    graph.add_edge("general", END)
+    graph.add_edge("calendar", "slack")
+    graph.add_edge("search", "slack")
+    graph.add_edge("summarizer", "slack")
+    graph.add_edge("slack", END)
 
     return graph.compile()
+
 
 automation_graph = build_graph()
