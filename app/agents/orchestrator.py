@@ -1,4 +1,5 @@
 from app.agents.llm import build_gemini_llm
+from app.tools.slack import send_slack
 
 llm = build_gemini_llm()
 
@@ -6,21 +7,21 @@ llm = build_gemini_llm()
 def automation_graph(state):
 
     user_input = state["user_input"]
-    memory = state.get("memory", {})
 
     prompt = f"""
-You are an AI automation agent.
+You are an AI automation assistant.
 
-Previous memory:
-{memory}
+User: {user_input}
+Memory: {state.get("memory")}
 
-User request:
-{user_input}
-
-Return a helpful response.
+Return helpful response.
 """
 
     response = llm.invoke(prompt)
+
+    # auto slack notify (demo product behavior)
+    if "slack" in user_input.lower():
+        send_slack(str(response))
 
     state["final_response"] = str(response)
     state["intent"] = "processed"

@@ -1,17 +1,21 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Header
 from pydantic import BaseModel
 import uuid
 
 from app.agents.orchestrator import automation_graph
-from app.core.memory import Memory
+from app.core.auth import verify
+from app.core.db import db
 
 app = FastAPI()
-memory = Memory()
 
 
 class Req(BaseModel):
     message: str
-    session_id: str | None = None
+
+
+@app.get("/")
+def home():
+    return {"status": "AI Automation Hub running"}
 
 
 @app.get("/health")
@@ -20,20 +24,23 @@ def health():
 
 
 @app.post("/automate")
-def automate(req: Req):
+def automate(req: Req, authorization: str = Header(None)):
 
-    session_id = req.session_id or str(uuid.uuid4())
+    user = verify(authorization)
 
-    prev_memory = memory.load(session_id)
+    if not user:
+        return {"error": "unauthorized"}
 
-    state = {
+    session_id = str(uuid.uuid4())
+
+    memory = db.get(user, "memory")
+
+    result = automation_graph({
         "user_input": req.message,
-        "memory": prev_memory
-    }
+        "memory": memory
+    })
 
-    result = automation_graph(state)
-
-    memory.save(session_id, result)
+    db.save(user, "memory", result)
 
     return {
         "session_id": session_id,
@@ -41,11 +48,15 @@ def automate(req: Req):
         "intent": result.get("intent")
     }
 
-@app.get("/")
-def root():
-    return {
-        "status": "AI Automation Hub running",
-        "docs": "/docs",
-        "health": "/health",
-        "endpoint": "/automate"
-    }
+
+from app.core.auth import login
+
+
+@app.post("/login")
+def login_api(data: dict):
+    token = login(data["username"], data["password"])
+
+    if not token:
+        return {"error": "invalid credentials"}
+
+    return {"token": token}
