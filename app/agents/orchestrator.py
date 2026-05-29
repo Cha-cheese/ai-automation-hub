@@ -1,29 +1,25 @@
 from app.agents.llm import build_gemini_llm
 
-llm = build_gemini_llm()
+genai = build_gemini_llm()
 
 
 def automation_graph(state):
 
     user_input = state.get("user_input", "")
 
-    # 🔥 FALLBACK MODE
-    if llm is None:
-
+    if genai is None:
         return {
-            "result": f"[MOCK RESPONSE] You said: {user_input}",
+            "result": "[MOCK] Gemini not loaded",
             "intent": "mock"
         }
 
     try:
+        model = genai.GenerativeModel("gemini-1.5-pro")
 
-        # ✅ REAL GEMINI CALL
-        response = llm.generate_content(user_input)
-
-        result_text = response.text
+        response = model.generate_content(user_input)
 
         return {
-            "result": result_text,
+            "result": response.text,
             "intent": "success"
         }
 
