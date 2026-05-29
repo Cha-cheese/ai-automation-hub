@@ -1,20 +1,25 @@
-from fastapi import FastAPI, Header
+from fastapi import FastAPI, Header, Request
 from pydantic import BaseModel
+
 from app.agents.orchestrator import automation_graph
 from app.core.auth import login as auth_login, verify_token
+
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import os
+from fastapi.responses import FileResponse, RedirectResponse
+
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
 from starlette.middleware.sessions import SessionMiddleware
-from fastapi.responses import RedirectResponse
-from fastapi import Request
+
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from starlette.middleware import Middleware
+
+import os
 
 
+# =========================
+# APP
+# =========================
 
 app = FastAPI()
 
@@ -24,7 +29,10 @@ app.add_middleware(
     same_site="lax"
 )
 
-app = FastAPI(middleware=middleware)
+
+# =========================
+# OAUTH
+# =========================
 
 config = Config(environ=os.environ)
 
@@ -34,22 +42,31 @@ oauth.register(
     name="google",
     client_id=os.getenv("GOOGLE_CLIENT_ID"),
     client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
-    server_metadata_url=
-    "https://accounts.google.com/.well-known/openid-configuration",
+    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
     client_kwargs={
         "scope": "openid email profile https://www.googleapis.com/auth/gmail.readonly"
     }
 )
 
+
+# =========================
+# FRONTEND
+# =========================
+
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+
 print("FRONTEND_DIR:", FRONTEND_DIR)
 print("EXISTS:", os.path.exists(FRONTEND_DIR))
 
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
-# ---------- MODELS ----------
+
+# =========================
+# MODELS
+# =========================
+
 class LoginReq(BaseModel):
     username: str
     password: str
@@ -59,9 +76,13 @@ class AutomateReq(BaseModel):
     message: str
 
 
-# ---------- ROUTES ----------
+# =========================
+# ROUTES
+# =========================
+
 @app.get("/")
 def root():
+
     return FileResponse(
         os.path.join(FRONTEND_DIR, "index.html")
     )
@@ -69,36 +90,56 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+
+    return {
+        "status": "ok"
+    }
 
 
 @app.post("/login")
 def login_api(req: LoginReq):
-    token = auth_login(req.username, req.password)
+
+    token = auth_login(
+        req.username,
+        req.password
+    )
 
     if not token:
-        return {"error": "invalid credentials"}
+        return {
+            "error": "invalid credentials"
+        }
 
-    return {"token": token}
+    return {
+        "token": token
+    }
 
 
 @app.post("/automate")
-def automate(req: AutomateReq, authorization: str = Header(None)):
+def automate(
+    req: AutomateReq,
+    authorization: str = Header(None)
+):
 
     user = verify_token(authorization)
 
     if not user:
-        return {"error": "unauthorized"}
+        return {
+            "error": "unauthorized"
+        }
 
     result = automation_graph({
         "user_input": req.message
     })
 
     return {
-    "result": result.get("result"),
-    "intent": result.get("intent")
-}
+        "result": result.get("result"),
+        "intent": result.get("intent")
+    }
 
+
+# =========================
+# GOOGLE LOGIN
+# =========================
 
 @app.get("/auth/login")
 async def login_google(request: Request):
@@ -121,7 +162,6 @@ async def auth_callback(request: Request):
 
         user = token.get("userinfo")
 
-        # SAVE ONLY SIMPLE VALUES
         request.session["access_token"] = token["access_token"]
         request.session["user_email"] = user["email"]
 
@@ -134,24 +174,22 @@ async def auth_callback(request: Request):
         }
 
 
+# =========================
+# GMAIL UNREAD
+# =========================
+
 @app.get("/gmail/unread")
 async def get_unread_emails(request: Request):
 
     access_token = request.session.get("access_token")
 
     if not access_token:
-        return {"error": "not logged in"}
+        return {
+            "error": "not logged in"
+        }
 
     credentials = Credentials(
-    token=access_token
-    )
-
-    if not token:
-        return {"error": "not logged in"}
-
-    # 🔥 CONVERT TOKEN → GOOGLE CREDENTIALS
-    credentials = Credentials(
-        token=token["access_token"]
+        token=access_token
     )
 
     service = build(
@@ -182,6 +220,7 @@ async def get_unread_emails(request: Request):
         subject = "(No Subject)"
 
         for h in headers:
+
             if h["name"] == "Subject":
                 subject = h["value"]
 
