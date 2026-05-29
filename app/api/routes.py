@@ -15,6 +15,9 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 import os
+from fastapi import Header
+
+
 
 
 # =========================
@@ -115,26 +118,33 @@ def login_api(req: LoginReq):
 
 
 @app.post("/automate")
-def automate(
-    req: AutomateReq,
-    authorization: str = Header(None)
-):
+def automate(req: AutomateReq, authorization: str = Header(None)):
 
-    user = verify_token(authorization)
+    try:
 
-    if not user:
+        if not authorization:
+            return {"error": "missing token"}
+
+        user = verify_token(authorization)
+
+        if not user:
+            return {"error": "unauthorized"}
+
+        result = automation_graph({
+            "user_input": req.message
+        })
+
         return {
-            "error": "unauthorized"
+            "result": result.get("result"),
+            "intent": result.get("intent")
         }
 
-    result = automation_graph({
-        "user_input": req.message
-    })
+    except Exception as e:
 
-    return {
-        "result": result.get("result"),
-        "intent": result.get("intent")
-    }
+        return {
+            "error": "internal_server_error",
+            "detail": str(e)
+        }
 
 
 # =========================
