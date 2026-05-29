@@ -1,20 +1,24 @@
 import os
 import requests
 
-API_KEY = os.getenv("GEMINI_API_KEY")
 
+def call_ai(prompt: str):
 
-def call_gemini(prompt: str):
+    api_key = os.getenv("GEMINI_API_KEY")
 
-    if not API_KEY:
-        return "[ERROR] Missing GEMINI_API_KEY"
+    # 🔥 ถ้าไม่มี key → ไม่ crash
+    if not api_key:
+        return f"[MOCK MODE] {prompt}"
 
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/"
-        f"models/gemini-1.5-flash:generateContent?key={API_KEY}"
-    )
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
 
-    payload = {
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    params = {"key": api_key}
+
+    body = {
         "contents": [
             {
                 "parts": [{"text": prompt}]
@@ -23,24 +27,14 @@ def call_gemini(prompt: str):
     }
 
     try:
-        res = requests.post(url, json=payload, timeout=30)
+        res = requests.post(url, headers=headers, params=params, json=body, timeout=20)
         data = res.json()
 
-        print("RAW GEMINI RESPONSE:", data)
+        # 🔥 SAFE PARSE (ไม่พังแน่นอน)
+        if "candidates" in data:
+            return data["candidates"][0]["content"]["parts"][0]["text"]
 
-        # 🔥 SAFE MODE (กันพัง 100%)
-        candidates = data.get("candidates")
-
-        if not candidates:
-            return f"[GEMINI ERROR RAW]: {data}"
-
-        content = candidates[0].get("content", {})
-        parts = content.get("parts", [])
-
-        if not parts:
-            return f"[GEMINI EMPTY PARTS]: {data}"
-
-        return parts[0].get("text", str(data))
+        return f"[AI RESPONSE RAW]: {data}"
 
     except Exception as e:
-        return f"[REQUEST FAILED]: {str(e)}"
+        return f"[AI FALLBACK]: {str(e)}"
