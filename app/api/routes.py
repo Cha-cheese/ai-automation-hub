@@ -2,9 +2,19 @@ from fastapi import FastAPI, Header
 from pydantic import BaseModel
 from app.agents.orchestrator import automation_graph
 from app.core.auth import login as auth_login, verify_token
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 
 app = FastAPI()
 
+FRONTEND_DIR = os.path.join(
+    os.path.dirname(__file__),
+    "..",
+    "frontend"
+)
+
+app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 # ---------- MODELS ----------
 class LoginReq(BaseModel):
@@ -19,7 +29,9 @@ class AutomateReq(BaseModel):
 # ---------- ROUTES ----------
 @app.get("/")
 def root():
-    return {"status": "AI Automation Hub running"}
+    return FileResponse(
+        os.path.join(FRONTEND_DIR, "index.html")
+    )
 
 
 @app.get("/health")

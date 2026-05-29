@@ -1,53 +1,114 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>AI Automation Hub</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #0f172a;
+            color: white;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: auto;
+        }
+
+        input, button, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: none;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+
+        #result {
+            margin-top: 20px;
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
 <body>
 
-<h2>AI Automation Hub</h2>
+<div class="container">
 
-<input id="user" placeholder="username">
-<input id="pass" placeholder="password">
-<button onclick="login()">Login</button>
+    <h1>🤖 AI Automation Hub</h1>
 
-<br><br>
+    <h3>Login</h3>
 
-<input id="msg" placeholder="message">
-<button onclick="send()">Send</button>
+    <input id="username" placeholder="username" value="admin">
+    <input id="password" placeholder="password" value="admin123">
 
-<pre id="out"></pre>
+    <button onclick="login()">Login</button>
+
+    <hr>
+
+    <h3>Send Automation Request</h3>
+
+    <textarea id="message" rows="5" placeholder="Type message..."></textarea>
+
+    <button onclick="sendMessage()">Run Automation</button>
+
+    <div id="result"></div>
+
+</div>
 
 <script>
 
-let token = ""
+let token = "";
 
 async function login() {
-  const res = await fetch("/login", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      username: document.getElementById("user").value,
-      password: document.getElementById("pass").value
-    })
-  })
 
-  const data = await res.json()
-  token = data.token
-  document.getElementById("out").innerText = JSON.stringify(data)
+    const response = await fetch("/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            username: document.getElementById("username").value,
+            password: document.getElementById("password").value
+        })
+    });
+
+    const data = await response.json();
+
+    token = data.token;
+
+    document.getElementById("result").innerText =
+        "✅ Logged in\nToken:\n" + token;
 }
 
-async function send() {
-  const res = await fetch("/automate", {
-    method: "POST",
-    headers: {
-      "Content-Type":"application/json",
-      "Authorization": token
-    },
-    body: JSON.stringify({
-      message: document.getElementById("msg").value
-    })
-  })
+async function sendMessage() {
 
-  const data = await res.json()
-  document.getElementById("out").innerText = JSON.stringify(data, null, 2)
+    const message = document.getElementById("message").value;
+
+    const response = await fetch("/automate", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": token
+        },
+        body: JSON.stringify({
+            message: message
+        })
+    });
+
+    const data = await response.json();
+
+    document.getElementById("result").innerText =
+        JSON.stringify(data, null, 2);
 }
 
 </script>
