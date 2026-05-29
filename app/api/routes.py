@@ -232,3 +232,75 @@ async def get_unread_emails(request: Request):
     return {
         "emails": emails
     }
+
+@app.get("/gmail/summary")
+async def summarize_emails(request: Request):
+
+    access_token = request.session.get("access_token")
+
+    if not access_token:
+        return {
+            "error": "not logged in"
+        }
+
+    credentials = Credentials(
+        token=access_token
+    )
+
+    service = build(
+        "gmail",
+        "v1",
+        credentials=credentials
+    )
+
+    results = service.users().messages().list(
+        userId="me",
+        labelIds=["UNREAD"],
+        maxResults=5
+    ).execute()
+
+    messages = results.get("messages", [])
+
+    email_texts = []
+
+    for msg in messages:
+
+        message = service.users().messages().get(
+            userId="me",
+            id=msg["id"]
+        ).execute()
+
+        headers = message["payload"]["headers"]
+
+        subject = "(No Subject)"
+
+        for h in headers:
+
+            if h["name"] == "Subject":
+                subject = h["value"]
+
+        email_texts.append(subject)
+
+    # 🔥 AI PROMPT
+    prompt = f"""
+    Summarize these unread emails briefly:
+
+    {email_texts}
+    """
+
+    try:
+
+        result = automation_graph({
+            "user_input": prompt
+        })
+
+        return {
+            "emails": email_texts,
+            "summary": result.get("result")
+        }
+
+    except Exception as e:
+
+        return {
+            "error": str(e)
+        }
