@@ -109,21 +109,41 @@ async def login_google(request: Request):
 @app.get("/auth/callback")
 async def auth_callback(request: Request):
 
-    token = await oauth.google.authorize_access_token(request)
+    try:
 
-    user = token.get("userinfo")
+        token = await oauth.google.authorize_access_token(request)
 
-    # 🔥 SAVE TOKEN IN SESSION
-    request.session["user"] = dict(user)
-    request.session["token"] = token
+        user = token.get("userinfo")
 
-    return RedirectResponse(url="/")
+        # SAVE ONLY SAFE DATA
+        request.session["user_email"] = user.get("email")
+        request.session["user_name"] = user.get("name")
+
+        # SAVE ACCESS TOKEN ONLY
+        request.session["access_token"] = token.get("access_token")
+
+        return RedirectResponse(url="/")
+
+    except Exception as e:
+
+        print("OAUTH ERROR:", str(e))
+
+        return {
+            "error": str(e)
+        }
 
 
 @app.get("/gmail/unread")
 async def get_unread_emails(request: Request):
 
-    token = request.session.get("token")
+    access_token = request.session.get("access_token")
+
+    if not access_token:
+        return {"error": "not logged in"}
+
+    credentials = Credentials(
+    token=access_token
+    )
 
     if not token:
         return {"error": "not logged in"}
