@@ -5,12 +5,11 @@ from app.core.auth import login as auth_login, verify_token
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
-import os
-
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.responses import RedirectResponse
+from fastapi import Request
 
 app = FastAPI()
 
@@ -94,7 +93,7 @@ def automate(req: AutomateReq, authorization: str = Header(None)):
 
 
 @app.get("/auth/login")
-async def login_google(request):
+async def login_google(request: Request):
 
     redirect_uri = request.url_for("auth_callback")
 
@@ -105,14 +104,4 @@ async def login_google(request):
 
 
 @app.get("/auth/callback")
-async def auth_callback(request):
-
-    token = await oauth.google.authorize_access_token(request)
-
-    user = token.get("userinfo")
-
-    return {
-        "email": user["email"],
-        "name": user["name"],
-        "message": "Google login successful"
-    }
+async def auth_callback(request: Request):
