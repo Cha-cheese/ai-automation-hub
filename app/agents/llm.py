@@ -1,13 +1,27 @@
 import os
-from google import genai
+import requests
 
 
-def build_model():
+API_KEY = os.getenv("GEMINI_API_KEY")
 
-    api_key = os.getenv("GEMINI_API_KEY")
 
-    if not api_key:
-        print("NO GEMINI KEY")
-        return None
+def call_gemini(prompt: str):
 
-    return genai.Client(api_key=api_key)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+
+    payload = {
+        "contents": [
+            {
+                "parts": [{"text": prompt}]
+            }
+        ]
+    }
+
+    res = requests.post(url, json=payload)
+
+    data = res.json()
+
+    try:
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+    except:
+        return str(data)
