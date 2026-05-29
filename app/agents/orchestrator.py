@@ -2,7 +2,7 @@ from app.agents.llm import build_model
 
 client = build_model()
 
-MODEL = "gemini-1.5-pro"
+MODEL = "gemini-1.0-pro"
 
 
 def automation_graph(state):
@@ -33,3 +33,7 @@ def automation_graph(state):
             "result": f"[AI ERROR SAFE]: {str(e)}",
             "intent": "error"
         }
+    
+MODEL_PRIORITY = [
+    "gemini-1.0-pro"
+]
