@@ -16,9 +16,7 @@ def call_ai(prompt: str):
 
     payload = {
         "contents": [
-            {
-                "parts": [{"text": prompt}]
-            }
+            {"parts": [{"text": prompt}]}
         ]
     }
 
@@ -27,9 +25,9 @@ def call_ai(prompt: str):
         data = res.json()
 
         if "candidates" not in data:
-            return f"[AI ERROR RAW]: {data}"
+            return f"[AI ERROR]: {data}"
 
         return data["candidates"][0]["content"]["parts"][0]["text"]
 
     except Exception as e:
-        return f"[AI REQUEST ERROR]: {str(e)}"
+        return f"[AI FALLBACK]: {str(e)}"
