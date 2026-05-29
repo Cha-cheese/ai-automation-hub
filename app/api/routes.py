@@ -12,16 +12,23 @@ from fastapi.responses import RedirectResponse
 from fastapi import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from starlette.middleware import Middleware
+
 
 
 app = FastAPI()
 
-app.add_middleware(
-    SessionMiddleware,
-    secret_key="SUPER_SECRET_KEY",
-    same_site="none",
-    https_only=True
-)
+middleware = [
+    Middleware(
+        SessionMiddleware,
+        secret_key="SUPER_SECRET_KEY",
+        same_site="lax",
+        https_only=True,
+        max_age=86400
+    )
+]
+
+app = FastAPI(middleware=middleware)
 
 config = Config(environ=os.environ)
 
@@ -100,7 +107,7 @@ def automate(req: AutomateReq, authorization: str = Header(None)):
 @app.get("/auth/login")
 async def login_google(request: Request):
 
-    redirect_uri = request.url_for("auth_callback")
+    redirect_uri = "https://ai-automation-hub-42r9.onrender.com/auth/callback"
 
     return await oauth.google.authorize_redirect(
         request,
