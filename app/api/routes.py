@@ -26,3 +26,8 @@ def login(req: LoginReq):
     return {
         "token": token
     }
+
+
+@router.get("/")
+def home():
+    return {"status": "ok"}
