@@ -1,21 +1,24 @@
 from app.agents.llm import build_model
 
-model = build_model()
+client = build_model()
 
 
 def automation_graph(state):
 
     user_input = state.get("user_input", "")
 
-    if model is None:
+    if client is None:
         return {
-            "result": "[NO MODEL LOADED]",
+            "result": "[NO GEMINI CLIENT]",
             "intent": "mock"
         }
 
     try:
 
-        response = model.generate_content(user_input)
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=user_input
+        )
 
         return {
             "result": response.text,
