@@ -3,9 +3,9 @@ from app.agents.llm import call_gemini
 
 def automation_graph(state):
 
-    try:
+    user_input = state.get("user_input", "")
 
-        user_input = state.get("user_input", "")
+    try:
 
         result = call_gemini(user_input)
 
