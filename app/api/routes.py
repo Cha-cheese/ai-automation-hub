@@ -62,6 +62,6 @@ def automate(req: AutomateReq, authorization: str = Header(None)):
     })
 
     return {
-        "result": result.get("final_response"),
-        "intent": result.get("intent")
-    }
+    "result": result.get("result"),
+    "intent": result.get("intent")
+}

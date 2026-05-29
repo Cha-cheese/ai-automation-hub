@@ -4,26 +4,30 @@ llm = build_gemini_llm()
 
 
 def automation_graph(state):
+
+    user_input = state.get("user_input", "")
+
+    # 🔥 fallback mode ถ้า AI พัง
+    if llm is None:
+        return {
+            "result": f"[MOCK RESPONSE] You said: {user_input}",
+            "intent": "mock"
+        }
+
     try:
-        user_input = state.get("user_input", "")
-
-        # fallback ถ้าไม่มี key
-        if llm is None:
-            return {
-                "final_response": "LLM not configured",
-                "intent": "no_llm"
-            }
-
         response = llm.invoke(user_input)
 
         return {
-            "final_response": str(response),
+            "result": str(response),
             "intent": "success"
         }
 
     except Exception as e:
+
+        # 🔥 IMPORTANT DEBUG
+        print("LLM ERROR:", str(e))
+
         return {
-            "final_response": "AI processing failed",
-            "error": str(e),
-            "intent": "failed"
+            "result": f"[AI ERROR FALLBACK] {user_input}",
+            "intent": "fallback"
         }
