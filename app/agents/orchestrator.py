@@ -1,20 +1,16 @@
-from app.agents.llm import build_gemini_llm
+import os
+import google.generativeai as genai
 
-genai = build_gemini_llm()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+model = genai.GenerativeModel("gemini-pro")
 
 
 def automation_graph(state):
 
     user_input = state.get("user_input", "")
 
-    if genai is None:
-        return {
-            "result": "[MOCK] Gemini not loaded",
-            "intent": "mock"
-        }
-
     try:
-        model = genai.GenerativeModel("gemini-1.5-pro")
 
         response = model.generate_content(user_input)
 
@@ -25,9 +21,9 @@ def automation_graph(state):
 
     except Exception as e:
 
-        print("LLM ERROR:", str(e))
+        print("LLM ERROR:", repr(e))
 
         return {
-            "result": f"[AI ERROR FALLBACK] {user_input}",
-            "intent": "fallback"
+            "result": f"[AI ERROR] {str(e)}",
+            "intent": "error"
         }
