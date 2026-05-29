@@ -1,14 +1,17 @@
-import os
-import google.generativeai as genai
+from app.agents.llm import build_model
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
-model = genai.GenerativeModel("gemini-pro")
+model = build_model()
 
 
 def automation_graph(state):
 
     user_input = state.get("user_input", "")
+
+    if model is None:
+        return {
+            "result": "[NO MODEL LOADED]",
+            "intent": "mock"
+        }
 
     try:
 
@@ -20,8 +23,6 @@ def automation_graph(state):
         }
 
     except Exception as e:
-
-        print("LLM ERROR:", repr(e))
 
         return {
             "result": f"[AI ERROR] {str(e)}",
