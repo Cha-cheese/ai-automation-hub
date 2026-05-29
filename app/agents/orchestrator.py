@@ -17,6 +17,6 @@ def automation_graph(state):
     except Exception as e:
 
         return {
-            "result": str(e),
+            "result": f"[SYSTEM ERROR]: {str(e)}",
             "intent": "error"
         }
