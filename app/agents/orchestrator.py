@@ -2,10 +2,8 @@ from app.agents.llm import build_model
 
 client = build_model()
 
-
 MODEL_PRIORITY = [
-    "gemini-1.5-pro",
-    "gemini-1.5-flash"
+    "gemini-1.5-pro"
 ]
 
 
@@ -25,6 +23,8 @@ def automation_graph(state):
 
         try:
 
+            print("USING MODEL:", model_name)
+
             response = client.models.generate_content(
                 model=model_name,
                 contents=user_input
@@ -33,12 +33,12 @@ def automation_graph(state):
             return {
                 "result": response.text,
                 "intent": "success",
-                "model_used": model_name
+                "model": model_name
             }
 
         except Exception as e:
             last_error = str(e)
-            continue
+            print("ERROR:", last_error)
 
     return {
         "result": f"[AI ERROR] {last_error}",

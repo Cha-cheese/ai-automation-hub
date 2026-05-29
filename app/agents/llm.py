@@ -7,8 +7,7 @@ def build_model():
     api_key = os.getenv("GEMINI_API_KEY")
 
     if not api_key:
+        print("NO GEMINI KEY")
         return None
 
-    client = genai.Client(api_key=api_key)
-
-    return client
+    return genai.Client(api_key=api_key)
