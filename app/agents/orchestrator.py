@@ -3,6 +3,12 @@ from app.agents.llm import build_model
 client = build_model()
 
 
+MODEL_PRIORITY = [
+    "gemini-1.5-pro",
+    "gemini-1.5-flash"
+]
+
+
 def automation_graph(state):
 
     user_input = state.get("user_input", "")
@@ -13,21 +19,28 @@ def automation_graph(state):
             "intent": "mock"
         }
 
-    try:
+    last_error = None
 
-        response = client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=user_input
-        )
+    for model_name in MODEL_PRIORITY:
 
-        return {
-            "result": response.text,
-            "intent": "success"
-        }
+        try:
 
-    except Exception as e:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=user_input
+            )
 
-        return {
-            "result": f"[AI ERROR] {str(e)}",
-            "intent": "error"
-        }
+            return {
+                "result": response.text,
+                "intent": "success",
+                "model_used": model_name
+            }
+
+        except Exception as e:
+            last_error = str(e)
+            continue
+
+    return {
+        "result": f"[AI ERROR] {last_error}",
+        "intent": "error"
+    }
