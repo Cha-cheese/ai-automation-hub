@@ -10,6 +10,9 @@ from starlette.config import Config
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi import Request
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+
 
 app = FastAPI()
 
@@ -121,10 +124,6 @@ async def auth_callback(request: Request):
     }
 
 
-
-from googleapiclient.discovery import build
-
-
 @app.get("/gmail/unread")
 async def get_unread_emails(request: Request):
 
@@ -133,7 +132,10 @@ async def get_unread_emails(request: Request):
     if not token:
         return {"error": "not logged in"}
 
-    credentials = token
+    # 🔥 CONVERT TOKEN → GOOGLE CREDENTIALS
+    credentials = Credentials(
+        token=token["access_token"]
+    )
 
     service = build(
         "gmail",
@@ -160,7 +162,7 @@ async def get_unread_emails(request: Request):
 
         headers = message["payload"]["headers"]
 
-        subject = ""
+        subject = "(No Subject)"
 
         for h in headers:
             if h["name"] == "Subject":
