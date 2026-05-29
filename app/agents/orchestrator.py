@@ -7,24 +7,28 @@ def automation_graph(state):
 
     user_input = state.get("user_input", "")
 
-    # 🔥 fallback mode ถ้า AI พัง
+    # 🔥 FALLBACK MODE
     if llm is None:
+
         return {
             "result": f"[MOCK RESPONSE] You said: {user_input}",
             "intent": "mock"
         }
 
     try:
-        response = llm.invoke(user_input)
+
+        # ✅ REAL GEMINI CALL
+        response = llm.generate_content(user_input)
+
+        result_text = response.text
 
         return {
-            "result": str(response),
+            "result": result_text,
             "intent": "success"
         }
 
     except Exception as e:
 
-        # 🔥 IMPORTANT DEBUG
         print("LLM ERROR:", str(e))
 
         return {
