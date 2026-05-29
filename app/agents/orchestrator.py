@@ -7,10 +7,14 @@ def automation_graph(state):
     try:
         user_input = state.get("user_input", "")
 
-        # SIMPLE SAFE PROMPT (no LangGraph dependency)
-        prompt = f"Answer this user: {user_input}"
+        # fallback ถ้าไม่มี key
+        if llm is None:
+            return {
+                "final_response": "LLM not configured",
+                "intent": "no_llm"
+            }
 
-        response = llm.invoke(prompt)
+        response = llm.invoke(user_input)
 
         return {
             "final_response": str(response),
