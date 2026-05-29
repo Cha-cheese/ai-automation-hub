@@ -110,8 +110,67 @@ async def auth_callback(request: Request):
 
     user = token.get("userinfo")
 
+    # 🔥 SAVE TOKEN IN SESSION
+    request.session["user"] = dict(user)
+    request.session["token"] = token
+
     return {
         "email": user["email"],
         "name": user["name"],
         "message": "Google login successful"
+    }
+
+
+
+from googleapiclient.discovery import build
+
+
+@app.get("/gmail/unread")
+async def get_unread_emails(request: Request):
+
+    token = request.session.get("token")
+
+    if not token:
+        return {"error": "not logged in"}
+
+    credentials = token
+
+    service = build(
+        "gmail",
+        "v1",
+        credentials=credentials
+    )
+
+    results = service.users().messages().list(
+        userId="me",
+        labelIds=["UNREAD"],
+        maxResults=5
+    ).execute()
+
+    messages = results.get("messages", [])
+
+    emails = []
+
+    for msg in messages:
+
+        message = service.users().messages().get(
+            userId="me",
+            id=msg["id"]
+        ).execute()
+
+        headers = message["payload"]["headers"]
+
+        subject = ""
+
+        for h in headers:
+            if h["name"] == "Subject":
+                subject = h["value"]
+
+        emails.append({
+            "id": msg["id"],
+            "subject": subject
+        })
+
+    return {
+        "emails": emails
     }
