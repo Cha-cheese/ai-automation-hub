@@ -18,15 +18,11 @@ from starlette.middleware import Middleware
 
 app = FastAPI()
 
-middleware = [
-    Middleware(
-        SessionMiddleware,
-        secret_key="SUPER_SECRET_KEY",
-        same_site="lax",
-        https_only=True,
-        max_age=86400
-    )
-]
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="CHANGE_THIS_SECRET_KEY",
+    same_site="lax"
+)
 
 app = FastAPI(middleware=middleware)
 
@@ -111,7 +107,8 @@ async def login_google(request: Request):
 
     return await oauth.google.authorize_redirect(
         request,
-        redirect_uri
+        redirect_uri,
+        prompt="select_account"
     )
 
 
@@ -124,18 +121,13 @@ async def auth_callback(request: Request):
 
         user = token.get("userinfo")
 
-        # SAVE ONLY SAFE DATA
-        request.session["user_email"] = user.get("email")
-        request.session["user_name"] = user.get("name")
-
-        # SAVE ACCESS TOKEN ONLY
-        request.session["access_token"] = token.get("access_token")
+        # SAVE ONLY SIMPLE VALUES
+        request.session["access_token"] = token["access_token"]
+        request.session["user_email"] = user["email"]
 
         return RedirectResponse(url="/")
 
     except Exception as e:
-
-        print("OAUTH ERROR:", str(e))
 
         return {
             "error": str(e)
