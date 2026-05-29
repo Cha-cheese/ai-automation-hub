@@ -17,6 +17,6 @@ def automation_graph(state):
     except Exception as e:
 
         return {
-            "result": f"[AI ERROR]: {str(e)}",
+            "result": str(e),
             "intent": "error"
         }

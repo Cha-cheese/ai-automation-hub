@@ -1,7 +1,6 @@
 import os
 import requests
 
-
 API_KEY = os.getenv("GEMINI_API_KEY")
 
 
@@ -18,7 +17,6 @@ def call_gemini(prompt: str):
     }
 
     res = requests.post(url, json=payload)
-
     data = res.json()
 
     try:
