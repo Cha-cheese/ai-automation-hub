@@ -3,7 +3,7 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     google_api_key: str = ""
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_model: str = "gemini-pro"
 
     tavily_api_key: str = ""
     slack_bot_token: str = ""
