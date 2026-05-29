@@ -11,27 +11,3 @@ def automation_graph(state):
         "result": result,
         "intent": "success"
     }
-
-@app.post("/automate")
-def automate(req: AutomateReq, authorization: str = Header(None)):
-
-    try:
-
-        if not authorization:
-            return {"error": "missing token"}
-
-        user = verify_token(authorization)
-
-        if not user:
-            return {"error": "unauthorized"}
-
-        result = automation_graph({"user_input": req.message})
-
-        return result
-
-    except Exception as e:
-
-        return {
-            "error": "safe_fallback",
-            "detail": str(e)
-        }
