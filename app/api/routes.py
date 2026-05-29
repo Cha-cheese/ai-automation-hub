@@ -117,11 +117,7 @@ async def auth_callback(request: Request):
     request.session["user"] = dict(user)
     request.session["token"] = token
 
-    return {
-        "email": user["email"],
-        "name": user["name"],
-        "message": "Google login successful"
-    }
+    return RedirectResponse(url="/")
 
 
 @app.get("/gmail/unread")
