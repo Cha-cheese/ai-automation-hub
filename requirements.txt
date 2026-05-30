@@ -8,3 +8,10 @@ langchain-core==0.1.52
 langchain-openai==0.1.7
 langgraph==0.0.38
 openai==1.40.0
+
+google-api-python-client
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+
+pydantic
