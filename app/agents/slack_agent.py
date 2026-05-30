@@ -1,8 +1,15 @@
-def slack_node(state: dict):
-    msg = state.get("final_response", "")
+import os
+import requests
 
-    return {
-        **state,
-        "slack_sent": True,
-        "final_response": f"📨 Slack delivered:\n{msg}"
-    }
+def slack_agent(message: str):
+
+    webhook = os.getenv("SLACK_WEBHOOK_URL")
+
+    if not webhook:
+        return {"status": "missing webhook"}
+
+    payload = {"text": message}
+
+    requests.post(webhook, json=payload)
+
+    return {"status": "sent"}

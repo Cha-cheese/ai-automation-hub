@@ -1,121 +1,78 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Automation Hub</title>
+  <title>AI Automation Hub</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
 
-    <style>
-        body {
-            font-family: Arial;
-            background: #0f172a;
-            color: white;
-            padding: 40px;
-        }
+    .box {
+      width: 500px;
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 12px;
+    }
 
-        .container {
-            max-width: 700px;
-            margin: auto;
-        }
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 10px;
+    }
 
-        input, button, textarea {
-            width: 100%;
-            padding: 12px;
-            margin-top: 10px;
-            border-radius: 8px;
-            border: none;
-        }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
 
-        button {
-            background: #2563eb;
-            color: white;
-            cursor: pointer;
-        }
-
-        #result {
-            margin-top: 20px;
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 10px;
-            white-space: pre-wrap;
-        }
-    </style>
+    pre {
+      background: #0f172a;
+      padding: 10px;
+      margin-top: 10px;
+      overflow-x: auto;
+    }
+  </style>
 </head>
 
 <body>
+  <div class="box">
+    <h2>🧠 AI Automation Hub</h2>
 
-<div class="container">
+    <input id="msg" placeholder="Type: read email and notify slack" />
 
-    <h1>🤖 AI Automation Hub</h1>
+    <button onclick="send()">Send</button>
 
-    <h3>Login</h3>
-
-    <input id="username" placeholder="username" value="admin">
-    <input id="password" placeholder="password" value="admin123">
-
-    <button onclick="window.location='/auth/login'">
-    Login with Google
-</button>
-
-    <hr>
-
-    <h3>Send Automation Request</h3>
-
-    <textarea id="message" rows="5" placeholder="Type message..."></textarea>
-
-    <button onclick="sendMessage()">Run Automation</button>
-
-    <div id="result"></div>
-
-</div>
+    <pre id="output"></pre>
+  </div>
 
 <script>
+async function send() {
+  const msg = document.getElementById("msg").value;
 
-let token = "";
+  const res = await fetch("http://127.0.0.1:8000/automate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: msg })
+  });
 
-async function login() {
+  const data = await res.json();
 
-    const response = await fetch("/login", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            username: document.getElementById("username").value,
-            password: document.getElementById("password").value
-        })
-    });
-
-    const data = await response.json();
-
-    // 🔥 SAVE TOKEN
-    localStorage.setItem("token", data.token);
-
-    document.getElementById("result").innerText =
-        "✅ Logged in";
+  document.getElementById("output").innerText =
+    JSON.stringify(data, null, 2);
 }
-
-async function sendMessage() {
-
-    const token = localStorage.getItem("token");
-
-    const message = document.getElementById("message").value;
-
-    const response = await fetch("/automate", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": token
-        },
-        body: JSON.stringify({
-            message: message
-        })
-    });
-
-    const data = await response.json();
-
-    document.getElementById("result").innerText =
-        JSON.stringify(data, null, 2);
-}
-
 </script>
 
 </body>

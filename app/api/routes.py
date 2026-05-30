@@ -1,50 +1,24 @@
-from fastapi import APIRouter, Header
+from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.agents.orchestrator import automation_graph
-from app.core.auth import login as auth_login, verify_token
+from app.agents.graph import run_graph
+from app.core.formatter import format_response
 
 router = APIRouter()
 
 
-# ---------------- LOGIN ----------------
-class LoginReq(BaseModel):
-    username: str
-    password: str
-
-
-@router.post("/login")
-def login(req: LoginReq):
-
-    token = auth_login(req.username, req.password)
-
-    if not token:
-        return {"error": "invalid credentials"}
-
-    return {"token": token}
-
-
-# ---------------- AUTOMATE ----------------
 class AutomateReq(BaseModel):
     message: str
 
 
 @router.post("/automate")
-def automate(req: AutomateReq, authorization: str = Header(None)):
+def automate(req: AutomateReq):
 
-    user = verify_token(authorization)
-
-    if not user:
-        return {"error": "unauthorized"}
-
-    result = automation_graph({
-        "user_input": req.message
+    result = run_graph({
+        "message": req.message
     })
 
-    return result
-
-
-# ---------------- HEALTH CHECK ----------------
-@router.get("/")
-def root():
-    return {"status": "ok"}
+    return {
+        "status": "success",
+        "result": format_response(result)
+    }

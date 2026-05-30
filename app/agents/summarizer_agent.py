@@ -1,9 +1,11 @@
-def summarizer_node(state: dict):
-    text = state.get("user_input", "")
+from app.core.llm import call_llm
 
-    return {
-        **state,
-        "summary": f"General request processed: {text}",
-        "intent": "general",
-        "final_response": f"🤖 Processed request: {text}"
-    }
+
+def summarizer_agent(emails):
+
+    prompt = f"""
+    Summarize these emails in short form:
+    {emails}
+    """
+
+    return call_llm(prompt)
