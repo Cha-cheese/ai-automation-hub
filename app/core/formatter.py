@@ -1,20 +1,40 @@
-def format_response(result: dict):
+def format_response(result):
 
-    gmail = result.get("data", {}).get("gmail", {})
-    slack = result.get("data", {}).get("slack", {})
-    calendar = result.get("data", {}).get("calendar", {})
+    # assistant response
+    if "message" in result:
+        return {
+            "type": "assistant",
+            "message": result["message"]
+        }
+
+    data = result.get("data", {})
+
+    gmail = data.get("gmail", {})
+    slack = data.get("slack", {})
+    calendar = data.get("calendar", {})
 
     emails = gmail.get("emails", [])
 
-    formatted = {
-        "🧠 Intent": result.get("intent"),
-        "📧 Gmail Summary": [
-            email[:120] + "..." if len(email) > 120 else email
-            for email in emails
-        ],
-        "💬 Slack Status": slack.get("status", "not sent"),
-        "📅 Calendar": calendar.get("status", "not created"),
-        "🔗 Event Link": calendar.get("event_link") or calendar.get("event"),
-    }
+    return {
+        "type": "automation",
 
-    return formatted
+        "intent": result.get("intent"),
+
+        "gmail_count": len(emails),
+
+        "gmail_emails": emails,
+
+        "slack_status": slack.get(
+            "status",
+            "not sent"
+        ),
+
+        "calendar_status": calendar.get(
+            "status",
+            "not created"
+        ),
+
+        "event_link": calendar.get(
+            "event_link"
+        )
+    }

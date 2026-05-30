@@ -2,33 +2,67 @@
 <html>
 <head>
 <meta charset="UTF-8">
+
 <title>AI Automation Hub</title>
 
 <style>
+
 body{
 font-family:Arial;
-max-width:900px;
-margin:auto;
+background:#f6f7fb;
 padding:40px;
+max-width:1000px;
+margin:auto;
+}
+
+h1{
+margin-bottom:20px;
 }
 
 textarea{
 width:100%;
 height:120px;
+padding:12px;
+font-size:16px;
 }
 
 button{
-padding:10px 20px;
+padding:12px 24px;
+font-size:16px;
 margin-top:10px;
 cursor:pointer;
 }
 
-pre{
-background:#f4f4f4;
-padding:15px;
-border-radius:10px;
-overflow:auto;
+.card{
+background:white;
+padding:20px;
+margin-top:20px;
+border-radius:12px;
+box-shadow:0 2px 10px rgba(0,0,0,0.08);
 }
+
+.email{
+margin-top:10px;
+padding:10px;
+background:#f2f2f2;
+border-radius:8px;
+}
+
+.success{
+color:green;
+font-weight:bold;
+}
+
+.warning{
+color:orange;
+font-weight:bold;
+}
+
+.link{
+margin-top:10px;
+display:block;
+}
+
 </style>
 
 </head>
@@ -37,7 +71,8 @@ overflow:auto;
 
 <h1>🧠 AI Automation Hub</h1>
 
-<textarea id="message"
+<textarea
+id="message"
 placeholder="read email and schedule meeting">
 </textarea>
 
@@ -47,9 +82,7 @@ placeholder="read email and schedule meeting">
 Send
 </button>
 
-<h2>Result</h2>
-
-<pre id="result"></pre>
+<div id="result"></div>
 
 <script>
 
@@ -72,9 +105,98 @@ message:msg
 const data =
 await response.json();
 
-document.getElementById("result")
-.textContent =
-JSON.stringify(data,null,2);
+renderResult(data.result);
+
+}
+
+function renderResult(result){
+
+const div =
+document.getElementById("result");
+
+if(result.type==="assistant"){
+
+div.innerHTML=`
+
+<div class="card">
+<h2>🤖 Assistant</h2>
+<p>${result.message}</p>
+</div>
+
+`;
+
+return;
+
+}
+
+let emails="";
+
+for(const e of result.gmail_emails){
+
+emails += `
+<div class="email">
+${e}
+</div>
+`;
+
+}
+
+div.innerHTML=`
+
+<div class="card">
+
+<h2>🧠 Intent</h2>
+<p>${result.intent}</p>
+
+</div>
+
+<div class="card">
+
+<h2>📧 Gmail</h2>
+
+<p>
+Found
+<b>${result.gmail_count}</b>
+emails
+</p>
+
+${emails}
+
+</div>
+
+<div class="card">
+
+<h2>💬 Slack</h2>
+
+<p class="success">
+${result.slack_status}
+</p>
+
+</div>
+
+<div class="card">
+
+<h2>📅 Calendar</h2>
+
+<p class="success">
+${result.calendar_status}
+</p>
+
+${
+result.event_link
+?
+`<a class="link"
+target="_blank"
+href="${result.event_link}">
+Open Event
+</a>`
+:
+""
+}
+
+</div>
+
+`;
 
 }
 
