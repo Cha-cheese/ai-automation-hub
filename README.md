@@ -1,86 +1,207 @@
-# ⚡ AI-Powered Business Automation Hub
+# 🧠 AI Automation Hub
 
-> Multi-agent automation system that understands natural language and orchestrates sub-agents to handle emails, calendar scheduling, Slack notifications, and web search — autonomously.
+A web-based automation system built with FastAPI that routes user commands to different workflow modules such as Gmail, Slack, and Google Calendar.
 
-**Live Demo:** https://ai-automation-hub.onrender.com  
-**Demo Video:** [Watch 2-min walkthrough](#)
+The project demonstrates API integration, workflow routing, and cloud deployment using a simple multi-module architecture.
 
-## Architecture
+## Live Demo
 
-## Key Design Decisions
+https://ai-automation-hub-42r9.onrender.com
 
-- **LangGraph over raw LangChain** — Explicit state machine for agent routing; easier to debug, extend, and monitor than callback-based chains.
-- **Gemini API as backbone** — Hosted LLM keeps the app inside Render's small-memory free tier; no local `torch`/`transformers` runtime.
-- **Upstash Redis (serverless)** — Zero cold-start, pay-per-request, GDPR-compliant EU region.
-- **n8n as visual orchestration layer** — Allows non-technical stakeholders to audit and modify workflows without touching code.
+---
 
-## Tech Stack
+# Features
 
-| Layer | Technology |
-|---|---|
-| Orchestration | LangGraph 0.1 |
-| LLM Backbone | Gemini API (`gemini-2.0-flash` by default) |
-| API Framework | FastAPI + Uvicorn |
-| Email | Gmail API (Service Account) |
-| Calendar | Google Calendar API |
-| Notifications | Slack SDK |
-| Web Search | Tavily |
-| State Store | Upstash Redis |
-| Visual Workflows | n8n |
-| Container | Docker (python:3.11-slim) |
-| Hosting | Render.com (Frankfurt region) |
+### Gmail Integration
 
-## Quickstart
+* Read recent emails using Gmail API
+* Display email subjects/content previews
+* Tested successfully on local environment with Google OAuth
 
-```bash
-git clone https://github.com/YOUR_USERNAME/ai-automation-hub
-cd ai-automation-hub
-cp .env.example .env
-# Fill in API keys in .env
-docker-compose up
-```
+### Calendar Integration
 
-API: `http://localhost:8000`  
-n8n: `http://localhost:5678`
+* Create calendar events through Google Calendar API
+* Return event creation status
+* Generate event links when Google Calendar API is configured
 
-## Local Demo Mode
+### Slack Integration
 
-Use this first when you want the UI to show complete results on your own machine without connecting real Gmail, Slack, or Calendar accounts.
+* Send notifications through Slack Webhooks
+* Modular Slack agent architecture
 
-```bash
-cp .env.local.example .env
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/uvicorn app.api.routes:app --host 127.0.0.1 --port 8000
-```
+### Workflow Routing
 
-Then open `http://127.0.0.1:8000` and click the example chips.
+The system analyzes user commands and routes them to the appropriate module.
 
-## Deployment
+Examples:
 
-Render is a good portfolio/demo choice, but it is not required. This app is a standard Dockerized FastAPI service, so it can run on Render, Railway, Fly.io, Google Cloud Run, AWS App Runner, Azure Container Apps, or a VPS. For EU-focused demos, choose an EU region and keep API keys in the platform's environment variables.
+* read email
+* notify slack
+* schedule meeting
+* read email and notify slack
+* read email and schedule meeting
 
-## API Usage
+---
 
-```bash
-curl -X POST https://ai-automation-hub.onrender.com/automate \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Check my emails and send a summary to Slack"}'
-```
+# Architecture
 
-## Example Automations
+User
+↓
+Web UI (HTML + JavaScript)
+↓
+FastAPI Backend
+↓
+Command Router
+↓
++-------------+
+| Gmail Agent |
++-------------+
 
-- **Email pipeline**: Fetches unread emails → Gemini summarizes + categorizes → Slack notification with urgency flag
-- **Meeting scheduler**: Parses natural language date/time → Creates Google Calendar event automatically  
-- **Research agent**: Web search via Tavily → Gemini synthesizes results with citations
++-------------+
+| Slack Agent |
++-------------+
 
-## Troubleshooting
++----------------+
+| Calendar Agent |
++----------------+
 
-If the UI stays on `Agents working...`, check these first:
+↓
 
-- `/automate` now has a backend timeout (`REQUEST_TIMEOUT_SECONDS`, default 45s) and the browser aborts after 50s.
-- Set `GOOGLE_API_KEY`; without it, the app returns a demo-mode response instead of hanging.
-- Set `TAVILY_API_KEY` only when you need live search. Tavily calls time out after `TAVILY_TIMEOUT_SECONDS`.
-- Redis is optional for the demo. If `UPSTASH_REDIS_REST_URL` or token is missing, automations still run but `/history/{session_id}` is disabled.
-- Personal Gmail accounts should use `GMAIL_IMAP_EMAIL` plus `GMAIL_IMAP_APP_PASSWORD`. `GOOGLE_SERVICE_ACCOUNT_JSON` for Gmail requires Google Workspace domain-wide delegation.
+Response Formatter
+↓
 
+Web UI
+
+---
+
+# Tech Stack
+
+| Layer           | Technology          |
+| --------------- | ------------------- |
+| Backend         | FastAPI             |
+| Language        | Python 3.11         |
+| Frontend        | HTML + JavaScript   |
+| API Server      | Uvicorn             |
+| Email           | Gmail API           |
+| Calendar        | Google Calendar API |
+| Notifications   | Slack Webhooks      |
+| Deployment      | Render              |
+| Version Control | Git + GitHub        |
+
+---
+
+# Project Structure
+
+app/
+
+├── agents/
+
+│ ├── gmail_agent.py
+
+│ ├── slack_agent.py
+
+│ ├── calendar_agent.py
+
+│ └── graph.py
+
+├── api/
+
+│ └── routes.py
+
+├── core/
+
+├── frontend/
+
+│ └── index.html
+
+└── main.py
+
+---
+
+# API Example
+
+POST /automate
+
+Request
+
+{
+"message": "read email and schedule meeting"
+}
+
+Response
+
+{
+"status": "success",
+"result": {
+"intent": "multi_agent_task",
+"gmail": "...",
+"calendar": "created"
+}
+}
+
+---
+
+# Example Commands
+
+read email
+
+read email and notify slack
+
+schedule meeting
+
+read email and schedule meeting
+
+notify slack
+
+---
+
+# Current Status
+
+Implemented
+
+✅ Web UI
+
+✅ FastAPI Backend
+
+✅ Command Routing
+
+✅ Gmail Module
+
+✅ Slack Module
+
+✅ Calendar Module
+
+✅ Render Deployment
+
+In Progress
+
+⚠ Production Gmail OAuth on Render
+
+⚠ Production Slack Configuration
+
+⚠ Production Calendar Workflow
+
+⚠ Advanced AI Agent Orchestration
+
+---
+
+# Learning Goals
+
+This project was built to explore:
+
+* Workflow automation
+* API integrations
+* FastAPI development
+* Cloud deployment
+* Modular agent architecture
+* Google Workspace integrations
+
+---
+
+# Author
+
+Natcha Aimthap
+
+Computer Engineering Graduate
+
+Thailand
