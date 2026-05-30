@@ -1,5 +1,12 @@
 .env
-.venv/
+
+token.json
+credentials.json
+
+google-service-account.json
+
 __pycache__/
 *.pyc
-google-service-account.json
+
+venv/
+.env.local
