@@ -1,78 +1,83 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AI Automation Hub</title>
-  <style>
-    body {
-      font-family: Arial;
-      background: #0f172a;
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
+<meta charset="UTF-8">
+<title>AI Automation Hub</title>
 
-    .box {
-      width: 500px;
-      background: #1e293b;
-      padding: 20px;
-      border-radius: 12px;
-    }
+<style>
+body{
+font-family:Arial;
+max-width:900px;
+margin:auto;
+padding:40px;
+}
 
-    input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      margin-bottom: 10px;
-    }
+textarea{
+width:100%;
+height:120px;
+}
 
-    button {
-      width: 100%;
-      padding: 10px;
-      background: #3b82f6;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
+button{
+padding:10px 20px;
+margin-top:10px;
+cursor:pointer;
+}
 
-    pre {
-      background: #0f172a;
-      padding: 10px;
-      margin-top: 10px;
-      overflow-x: auto;
-    }
-  </style>
+pre{
+background:#f4f4f4;
+padding:15px;
+border-radius:10px;
+overflow:auto;
+}
+</style>
+
 </head>
 
 <body>
-  <div class="box">
-    <h2>🧠 AI Automation Hub</h2>
 
-    <input id="msg" placeholder="Type: read email and notify slack" />
+<h1>🧠 AI Automation Hub</h1>
 
-    <button onclick="send()">Send</button>
+<textarea id="message"
+placeholder="read email and schedule meeting">
+</textarea>
 
-    <pre id="output"></pre>
-  </div>
+<br>
+
+<button onclick="sendRequest()">
+Send
+</button>
+
+<h2>Result</h2>
+
+<pre id="result"></pre>
 
 <script>
-async function send() {
-  const msg = document.getElementById("msg").value;
 
-  const res = await fetch("http://127.0.0.1:8000/automate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: msg })
-  });
+async function sendRequest(){
 
-  const data = await res.json();
+const msg =
+document.getElementById("message").value;
 
-  document.getElementById("output").innerText =
-    JSON.stringify(data, null, 2);
+const response =
+await fetch("/automate",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+message:msg
+})
+});
+
+const data =
+await response.json();
+
+document.getElementById("result")
+.textContent =
+JSON.stringify(data,null,2);
+
 }
+
 </script>
 
 </body>
