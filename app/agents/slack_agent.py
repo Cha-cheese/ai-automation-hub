@@ -1,15 +1,34 @@
 import os
 import requests
 
-def slack_agent(message: str):
 
-    webhook = os.getenv("SLACK_WEBHOOK_URL")
+def slack_agent(text: str):
+
+    webhook = os.getenv(
+        "SLACK_WEBHOOK_URL"
+    )
 
     if not webhook:
-        return {"status": "missing webhook"}
 
-    payload = {"text": message}
+        return {
+            "status": "missing webhook"
+        }
 
-    requests.post(webhook, json=payload)
+    try:
 
-    return {"status": "sent"}
+        requests.post(
+            webhook,
+            json={"text": text},
+            timeout=10
+        )
+
+        return {
+            "status": "sent"
+        }
+
+    except Exception as e:
+
+        return {
+            "status": "error",
+            "error": str(e)
+        }

@@ -1,27 +1,54 @@
 from app.core.google_client import get_gmail_service
 
+
 def gmail_agent(user_input: str):
 
-    service = get_gmail_service()
+    try:
 
-    results = service.users().messages().list(
-        userId="me",
-        maxResults=5
-    ).execute()
+        service = get_gmail_service()
 
-    messages = results.get("messages", [])
+        results = (
+            service.users()
+            .messages()
+            .list(
+                userId="me",
+                maxResults=5
+            )
+            .execute()
+        )
 
-    emails = []
+        messages = results.get("messages", [])
 
-    for msg in messages:
-        data = service.users().messages().get(
-            userId="me",
-            id=msg["id"]
-        ).execute()
+        emails = []
 
-        emails.append(data.get("snippet", ""))
+        for msg in messages:
 
-    return {
-        "emails": emails,
-        "source": "gmail_real"
-    }
+            detail = (
+                service.users()
+                .messages()
+                .get(
+                    userId="me",
+                    id=msg["id"]
+                )
+                .execute()
+            )
+
+            snippet = detail.get(
+                "snippet",
+                "No content"
+            )
+
+            emails.append(snippet)
+
+        return {
+            "emails": emails,
+            "source": "gmail_real"
+        }
+
+    except Exception as e:
+
+        return {
+            "emails": [],
+            "source": "gmail_error",
+            "error": str(e)
+        }
